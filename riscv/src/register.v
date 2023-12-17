@@ -8,7 +8,7 @@ module register(
     input wire[ 4:0]            get_reg_1,		// register1 to be read
     input wire[ 4:0]            get_reg_2,		// register2 to be read
     output wire[31:0]           get_val_1,		// value read from register1
-    output wire[31:0]           get_val_2,		// value read from register2
+    output wire[31:0]           get_val_2		// value read from register2
 );
 
 reg [31:0] regfile[31:0];
