@@ -8,7 +8,7 @@ module MemoryController (
     output wire [31:0] mem_a,     // address bus (only 17:0 is used)
     output wire        mem_wr,    // write/read signal (1 for write)
 
-    input wire        wating,  // waiting for work
+    input wire        waiting,  // waiting for work
     input wire        wr,      // write/read signal (1 for write)
     input wire [ 2:0] len,     // length of data to be read/written 
     // 0: 1 byte, 1: 2 bytes, 2: 4 bytes
@@ -41,7 +41,7 @@ module MemoryController (
     assign ready = !busy && state == 0 && work_wr == wr && work_len == len && work_addr == addr && work_value == value;
     assign result = sign_extend(len, mem_din, res);
 
-    assign need_work = wating && !ready;
+    assign need_work = waiting && !ready;
     assign first_cycle = state == 0 && need_work;
 
     assign mem_wr = first_cycle ? wr : current_wr;
@@ -63,7 +63,10 @@ module MemoryController (
             current_value <= 0;
         end
         else if (rdy_in) begin
-            $display("state: %d, res: %h, m_din: %h, work_addr: %d, cur_addr: %d", state, res, mem_din, work_addr, current_addr);
+            if (waiting) begin
+                // $display("state: %d, res: %h, m_din: %h, work_addr: %d, cur_addr: %d, addr: %d", state, res, mem_din, work_addr, current_addr, addr);    
+            end
+            
             case (state)
                 3'b000: begin
                     if (need_work) begin  // start working                    
@@ -72,19 +75,21 @@ module MemoryController (
                         work_len <= len;
                         work_addr <= addr;
                         work_value <= value;
-                        state <= 3'b001;
-                        current_wr <= work_wr;
-                        current_addr <= addr + 1;
-                        current_value <= work_value[15: 8];
-                    end
-                    else begin  // done
-                        state <= 3'b000;
-                        current_wr <= 0;
-                        current_value <= 0;
-                        // special case: addr[17:16] == 2'b11
-                        // otherwise, keep addr
-                        current_addr <= addr[17:16] == 2'b11 ? 0 : addr;
-                    end
+                        if (len[1:0]) begin                                                
+                            state <= 3'b001;
+                            current_wr <= work_wr;
+                            current_addr <= addr + 1;
+                            current_value <= work_value[15: 8];
+                        end
+                        else begin
+                            state <= 3'b000;
+                            current_wr <= 0;
+                            current_value <= 0;
+                            // special case: addr[17:16] == 2'b11
+                            // otherwise, keep addr
+                            current_addr <= addr[17:16] == 2'b11 ? 0 : addr;
+                        end
+                    end                    
                 end
                 3'b001: begin
                     if (work_len[1:0] == 2'b00) begin
