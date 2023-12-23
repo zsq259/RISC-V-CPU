@@ -54,7 +54,7 @@ module cpu (
         .d_wating(1'b0),
 
         .i_result (m_res),
-        .i_m_ready(i_ready)        
+        .i_m_ready(i_ready)
     );
 
     InstructionFetch ifetch (
@@ -83,12 +83,12 @@ module cpu (
         end
         else begin
             // $display("counter: %d", counter);
-            counter <= counter + 1;
-            if (ready) begin
-                $display("inst: %h, pc: %d", inst, pc);
+            // counter <= counter + 1;
+            // if (ready) begin
+            //     $display("inst: %h, pc: %d", inst, pc);
 
-            end
-
+            // end
+    
         end
 
     end

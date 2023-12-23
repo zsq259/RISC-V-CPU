@@ -33,7 +33,7 @@ module InstructionCache #(
                 valid[i] <= 0;
                 tags[i]  <= 0;
                 block[i] <= 0;
-            end            
+            end
         end
         else if (wr) begin
             // $display("------------------------------addr: %d", addr);
