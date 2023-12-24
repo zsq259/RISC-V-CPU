@@ -25,6 +25,7 @@ module ReserveStation #(
     input wire value_rs1,
     input wire value_rs2,
 
+    // for RoB
     input wire RoB_tail,
 
     input wire RoB_busy_1,
@@ -39,7 +40,9 @@ module ReserveStation #(
     output wire need_rs1,
     output wire need_rs2,
     output wire need_q_1,
-    output wire need_q_2
+    output wire need_q_2,
+    
+    output wire full
 );
 
     wire is_U = opcode == 7'b0110111 || opcode == 7'b0010111;
@@ -74,6 +77,7 @@ module ReserveStation #(
     endgenerate
     wire [BITS-1:0] id = free[1];
     assign ready = need_RS && !busy[id];
+    assign full = busy[id];
 
     assign need_q_1 = rs1;
     assign need_q_2 = rs2;
