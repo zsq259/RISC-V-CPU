@@ -76,7 +76,7 @@ module ReserveStation #(
         end
     endgenerate
     wire [BITS-1:0] id = free[1];
-    assign ready = need_RS && !busy[id];
+    wire ready = need_RS && !busy[id];
     assign full = busy[id];
 
     assign need_q_1 = rs1;

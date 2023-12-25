@@ -3,17 +3,24 @@ module InstructionFetch (
     input wire rst_in,  // reset signal
     input wire rdy_in,  // ready signal, pause cpu when low
 
+    input wire pc_change_flag, // pc change flag
+    input wire [31:0] pc_change, // pc change value
+
     input wire stall,  // stall signal
     input wire ready_in,
     input wire [31:0] inst_in,  // instruction input
 
     output wire ready_out,  // ready signal;
     output wire [31:0] inst_out,  // instruction output
-    output reg [31:0] pc,  // program counter
+    output wire [31:0] pc_out,  // program counter
     output reg [31:0] addr  // address
+
 );
+
+    reg [31:0] pc;
     assign ready_out = rdy_in && ready_in && !stall;
     assign inst_out = inst_in;
+    assign pc_out = pc_change_flag ? pc_change : pc;
 
     always @(posedge clk_in) begin
         if (rst_in) begin            

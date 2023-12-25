@@ -62,13 +62,16 @@ module cpu (
         .rst_in(rst_in),
         .rdy_in(rdy_in),
 
+        .pc_change_flag(1'b0),
+        .pc_change(0),
+
         .stall(1'b0),
         .ready_in(i_ready),
         .inst_in(m_res),
 
         .ready_out(ready),
         .inst_out(inst),
-        .pc(pc)
+        .pc_out(pc)
     );
 
     reg [31:0] counter;

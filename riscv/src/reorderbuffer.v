@@ -57,6 +57,7 @@ module ReorderBuffer #(
         end
         else begin
             if (issue_ready) begin
+                tail <= tail + 1;
                 if (is_J) begin
                     value[tail] <= pc + 4;
                 end
