@@ -1,12 +1,14 @@
+`include "const.v"
+
 module ReserveStation #(
-    parameter BITS = 4,
-    parameter SIZE = 16
+    parameter BITS = `RS_BITS,
+    parameter SIZE = `RS_SIZE
 ) (
     input wire clk_in,  // system clock signal
     input wire rst_in,  // reset signal
     input wire rdy_in,  // ready signal, pause cpu when low
 
-    input wire pc,
+    input wire [31:0] pc,
 
     input wire issue_ready,
     input wire need_LSB,
@@ -18,29 +20,23 @@ module ReserveStation #(
     input wire funct7,
     input wire [31:0] imm,
 
-    input wire [31:0] q_rs1,
-    input wire [31:0] q_rs2,
+    input wire [`RoB_BITS-1:0] q_rs1,
+    input wire [`RoB_BITS-1:0] q_rs2,
     input wire q_ready_rs1,  // 1 if rs1 is not dependent
     input wire q_ready_rs2,  // 1 if rs2 is not dependent
-    input wire value_rs1,
-    input wire value_rs2,
+    input wire [31:0] value_rs1,
+    input wire [31:0] value_rs2,
 
     // for RoB
-    input wire RoB_tail,
+    input wire [`RoB_BITS-1:0] RoB_tail,
 
     input wire RoB_busy_1,
     input wire [31:0] RoB_value_1,
-    output wire RoB_id_1,
+    output wire [`RoB_BITS-1:0] RoB_id_1,
 
     input wire RoB_busy_2,
     input wire [31:0] RoB_value_2,
-    output wire RoB_id_2,
-
-    // for register
-    output wire need_rs1,
-    output wire need_rs2,
-    output wire need_q_1,
-    output wire need_q_2,
+    output wire [`RoB_BITS-1:0] RoB_id_2,
     
     output wire full
 );
@@ -52,7 +48,7 @@ module ReserveStation #(
     wire is_B = opcode == 7'b1100011;
     wire is_R = opcode == 7'b0110011;
     wire is_load = opcode == 7'b0000011;
-    wire is_jail = opcode == 7'b1100111;
+    wire is_jalr = opcode == 7'b1100111;
 
     wire need_RS = !need_LSB;
     reg busy[SIZE-1:0];
@@ -77,14 +73,21 @@ module ReserveStation #(
     endgenerate
     wire [BITS-1:0] id = free[1];
     wire ready = need_RS && !busy[id];
-    assign full = busy[id];
-
-    assign need_q_1 = rs1;
-    assign need_q_2 = rs2;
+    assign full = busy[id];        
 
     always @(posedge clk_in) begin
         if (rst_in) begin
-
+            for (integer i = 0; i < SIZE; i = i + 1) begin
+                busy[i]  <= 0;
+                vj[i]    <= 0;
+                vk[i]    <= 0;
+                qj[i]    <= 0;
+                qk[i]    <= 0;
+                rdj[i]   <= 0;
+                rdk[i]   <= 0;
+                A[i]     <= 0;
+                dest[i]  <= 0;
+            end
         end
         else if (rdy_in) begin
             if (issue_ready && ready) begin

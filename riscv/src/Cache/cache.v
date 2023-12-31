@@ -93,8 +93,7 @@ module Cache (
                     if (d_wating) begin
                     end
                     else if (i_waiting) begin
-                        if (i_hit) begin
-                            $display("hittttttttttttttttttttttt");
+                        if (i_hit) begin                            
                         end
                         else begin
                             state <= 1;

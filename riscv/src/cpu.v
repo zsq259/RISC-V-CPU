@@ -26,13 +26,12 @@ module cpu (
     // - 0x30000 read: read a byte from input
     // - 0x30000 write: write a byte to output (write 0x00 is ignored)
     // - 0x30004 read: read clocks passed since cpu starts (in dword, 4 bytes)
-    // - 0x30004 write: indicates program stop (will output '\0' through uart tx)
+    // - 0x30004 write: indicates program stop (will output '\0' through uart tx)    
 
     reg waiting;
     wire i_ready;
 
-
-    wire ready;
+    wire fetch_ready;
     wire [31:0] inst;
 
     wire [31:0] m_res;
@@ -57,6 +56,8 @@ module cpu (
         .i_m_ready(i_ready)
     );
 
+    wire fetch_stall;
+
     InstructionFetch ifetch (
         .clk_in(clk_in),
         .rst_in(rst_in),
@@ -65,13 +66,194 @@ module cpu (
         .pc_change_flag(1'b0),
         .pc_change(0),
 
-        .stall(1'b0),
+        .stall(fetch_stall),
         .ready_in(i_ready),
         .inst_in(m_res),
 
-        .ready_out(ready),
+        .ready_out(fetch_ready),
         .inst_out(inst),
         .pc_out(pc)
+    );
+
+    wire RS_full;
+    wire LSB_full;
+    wire RoB_full;
+    wire RoB_stall;
+
+    wire [6:0] opcode;
+    wire [4:0] rd;
+    wire [4:0] rs1;
+    wire [4:0] rs2;
+    wire [2:0] funct3;
+    wire funct7;
+    wire [31:0] imm;
+    wire need_LSB;
+
+    wire issue_ready;
+    wire issue_stall;
+
+    Decoder decoder (
+        .clk_in(clk_in),
+        .rst_in(rst_in),
+        .rdy_in(rdy_in),
+
+        .RS_full  (RS_full),
+        .LSB_full (LSB_full),
+        .RoB_full (RoB_full),
+        .RoB_stall(RoB_stall),
+
+        .fetch_ready(fetch_ready),
+        .inst(inst),
+        .pc(pc),
+
+        .opcode(opcode),
+        .rd(rd),
+        .rs1(rs1),
+        .rs2(rs2),
+        .funct3(funct3),
+        .funct7(funct7),
+        .imm(imm),
+
+        .need_LSB(need_LSB),
+
+        .issue_ready(issue_ready),
+        .stall(fetch_stall)
+    );
+
+    wire [31:0] reg_value_1;
+    wire [31:0] reg_value_2;
+    wire [3:0] q_value_1;
+    wire [3:0] q_value_2;
+    wire q_ready_1;
+    wire q_ready_2;
+
+    Register regster (
+        .clk_in(clk_in),
+        .rst_in(rst_in),
+        .rdy_in(rdy_in),
+
+        .set_reg(5'b0),
+        .set_val(32'b0),
+
+        .set_reg_q(5'b0),
+        .set_val_q(32'b0),
+        .set_rdy_q(1'b0),
+        
+        .get_reg_1(rs1),
+        .get_reg_2(rs2),
+
+        .get_val_1(reg_value_1),
+        .get_val_2(reg_value_2),
+
+        .get_q_value_1(q_value_1),
+        .get_q_ready_1(q_ready_1),
+
+        .get_q_value_2(q_value_2),
+        .get_q_ready_2(q_ready_2)
+    );
+
+    wire [3:0] RoB_tail;
+    wire [3:0] get_RoBid_1;
+    wire [3:0] get_RoBid_2;
+    wire RoB_busy_1;
+    wire RoB_busy_2;
+    wire [31:0] RoB_value_1;
+    wire [31:0] RoB_value_2;
+
+    ReorderBuffer RoB (
+        .clk_in(clk_in),
+        .rst_in(rst_in),
+        .rdy_in(rdy_in),
+
+        .issue_ready(issue_ready),
+        .pc(pc),
+        .pc_B_fail(32'b0),
+        .pred_res(1'b0),
+
+        .opcode(opcode),
+        .rd(rd),
+
+        .get_RoBid_1(get_RoBid_1),
+        .get_RoBid_2(get_RoBid_2),
+        .RoB_busy_1(RoB_busy_1),
+        .RoB_busy_2(RoB_busy_2),
+        .RoB_value_1(RoB_value_1),
+        .RoB_value_2(RoB_value_2),
+
+        .RoB_tail(RoB_tail),
+        .full(RoB_full),
+
+        .stall(RoB_stall)
+    );
+
+    ReserveStation RS (
+        .clk_in(clk_in),
+        .rst_in(rst_in),
+        .rdy_in(rdy_in),
+
+        .pc(pc),
+
+        .issue_ready(issue_ready),
+        .need_LSB(need_LSB),
+        .opcode(opcode),
+        .rd(rd),
+        .rs1(rs1),
+        .rs2(rs2),
+        .funct3(funct3),
+        .funct7(funct7),
+        .imm(imm),
+
+        .q_rs1(q_value_1),
+        .q_rs2(q_value_2),
+        .q_ready_rs1(q_ready_1),
+        .q_ready_rs2(q_ready_2),
+        .value_rs1(reg_value_1),
+        .value_rs2(reg_value_2),
+
+        .RoB_tail(RoB_tail),
+
+        .RoB_busy_1(RoB_busy_1),
+        .RoB_value_1(RoB_value_1),
+
+        .RoB_busy_2(RoB_busy_2),
+        .RoB_value_2(RoB_value_2),
+
+        .full(RS_full)
+    );
+
+    LoadStoreBuffer LSB (
+        .clk_in(clk_in),
+        .rst_in(rst_in),
+        .rdy_in(rdy_in),
+
+        .pc(pc),
+
+        .issue_ready(issue_ready),
+        .need_LSB(need_LSB),
+        .opcode(opcode),
+        .rd(rd),
+        .rs1(rs1),
+        .rs2(rs2),
+        .funct3(funct3),
+        .funct7(funct7),
+        .imm(imm),
+
+        .q_rs1(q_value_1),
+        .q_rs2(q_value_2),
+        .q_ready_rs1(q_ready_1),
+        .q_ready_rs2(q_ready_2),
+        .value_rs1(reg_value_1),
+        .value_rs2(reg_value_2),
+
+        .RoB_tail(RoB_tail),
+
+        .RoB_busy_1(RoB_busy_1),
+        .RoB_value_1(RoB_value_1),
+
+        .RoB_busy_2(RoB_busy_2),
+        .RoB_value_2(RoB_value_2),
+
+        .full(LSB_full)
     );
 
     reg [31:0] counter;
@@ -91,7 +273,7 @@ module cpu (
             //     $display("inst: %h, pc: %d", inst, pc);
 
             // end
-    
+
         end
 
     end

@@ -6,18 +6,13 @@ module Decoder (
     input wire RS_full,   // 1 if RS is full
     input wire LSB_full,  // 1 if LSB is full
     input wire RoB_full,  // 1 if RoB is full
+    input wire RoB_stall, // 1 if RoB is stalled
 
     input wire fetch_ready,
     input wire [31:0] inst,
-    output wire is_R,
-    output wire is_I,
-    output wire is_S,
-    output wire is_B,
-    output wire is_U,
-    output wire is_J,
-    output wire is_load,
-    output wire is_jail,
-    output wire issue_ready,
+    input wire [31:0] pc,
+
+    output wire [6:0] opcode,
     output wire [4:0] rd,
     output wire [4:0] rs1,
     output wire [4:0] rs2,
@@ -27,10 +22,11 @@ module Decoder (
 
     output wire need_LSB,
 
+    output wire issue_ready,
     output wire stall
 );
 
-    wire opcode = inst[6:0];
+    assign opcode = inst[6:0];
     assign rd = inst[11:7];
     assign funct3 = inst[14:12];
     assign rs1 = inst[19:15];
@@ -42,10 +38,10 @@ module Decoder (
     assign is_S = (opcode == 7'b0100011);
     assign is_B = (opcode == 7'b1100011);
     assign is_U = (opcode == 7'b0110111) || (opcode == 7'b0010111);
-    assign is_J = (opcode == 7'b1101111);    
+    assign is_J = (opcode == 7'b1101111);
 
     assign is_load = opcode == 7'b0000011;
-    assign is_jail = opcode == 7'b1100111;
+    assign is_jalr = opcode == 7'b1100111;
 
     assign need_LSB = is_S || opcode == 7'b0000011;
 
@@ -61,24 +57,23 @@ module Decoder (
     //     sign_extend = value[len-1] ? value | (32'b1 >> len << len) : value ^ (value >> len << len);
     // endfunction
 
-    assign imm = is_U ? {imm_U, 12'b0} : //
-                 is_J ? {{11{imm_J[20]}}, imm_J} :  // sign_extend({11'b0, imm_J}, 5'd21)
-                 is_B ? {{19{imm_B[12]}}, imm_B} :  // sign_extend({19'b0, imm_B}, 5'd13)
-                 is_S ? {{20{imm_S[11]}}, imm_S} :  // sign_extend({20'b0, imm_S}, 5'd12)
-                 (opcode == 7'b0010011 && funct3 == 3'b001 || funct3 == 3'b101) ? {27'b0, rs2} : 
-                 {{20{imm_I[11]}}, imm_I}; // sign_extend({20'b0, imm_I}, 5'd12);
+    assign imm = is_U ? {imm_U, 12'b0} :  //
+        is_J ? {{11{imm_J[20]}}, imm_J} :  // sign_extend({11'b0, imm_J}, 5'd21)
+        is_B ? {{19{imm_B[12]}}, imm_B} :  // sign_extend({19'b0, imm_B}, 5'd13)
+        is_S ? {{20{imm_S[11]}}, imm_S} :  // sign_extend({20'b0, imm_S}, 5'd12)
+        (opcode == 7'b0010011 && funct3 == 3'b001 || funct3 == 3'b101) ? {27'b0, rs2} : {{20{imm_I[11]}}, imm_I};  // sign_extend({20'b0, imm_I}, 5'd12);
 
-    assign issue_ready = !(!fetch_ready || RoB_full || (need_LSB && LSB_full) || (!need_LSB && RS_full));
+    assign stall = RoB_full || RoB_stall || (need_LSB && LSB_full) || (!need_LSB && RS_full);
 
-    assign stall = !issue_ready;
+    assign issue_ready = !stall && fetch_ready;
 
     always @(posedge clk_in) begin
         if (rst_in) begin
 
         end
         else if (rdy_in) begin
-            if (issue_ready) begin
-
+            if (fetch_ready && issue_ready) begin
+                $display("inst: %h, %d", inst, pc);
             end
         end
     end

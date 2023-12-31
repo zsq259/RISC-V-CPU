@@ -1,6 +1,8 @@
+`include "const.v"
+
 module ReorderBuffer #(
-    parameter BITS = 4,
-    parameter Size = 16
+    parameter BITS = `RoB_BITS,
+    parameter Size = `RoB_SIZE
 ) (
     input wire clk_in,  // system clock signal
     input wire rst_in,  // reset signal
@@ -10,15 +12,12 @@ module ReorderBuffer #(
     input wire[31:0] pc,
     input wire[31:0] pc_B_fail, // what pc should be if branch fails
     input wire pred_res,  // prediction result
-
-    input wire is_J,
-    input wire is_B,
-    input wire is_S,
-    input wire is_jail,
+    
+    input wire[6:0] opcode,
     input wire[4:0] rd,
 
-    input wire get_RoBid_1,
-    input wire get_RoBid_2,
+    input wire[BITS-1:0] get_RoBid_1,
+    input wire[BITS-1:0] get_RoBid_2,
     output wire RoB_busy_1,
     output wire RoB_busy_2,
     output wire [31:0] RoB_value_1,
@@ -36,6 +35,11 @@ module ReorderBuffer #(
     reg [31:0] value[Size-1:0];
     reg [31:0] dest[Size-1:0];
 
+    wire is_J = opcode == 7'b1101111;
+    wire is_B = opcode == 7'b1100011;
+    wire is_S = opcode == 7'b0100011;
+    wire is_jalr = opcode == 7'b1100111;
+
     assign RoB_tail = tail;
     assign full = head == tail && !free[head];
 
@@ -48,6 +52,7 @@ module ReorderBuffer #(
         if (rst_in) begin
             head <= 0;
             tail <= 0;
+            stall <= 0;
             for (integer i = 0; i < Size; i = i + 1) begin
                 busy[i]  <= 0;
                 free[i]  <= 1;
@@ -61,7 +66,7 @@ module ReorderBuffer #(
                 if (is_J) begin
                     value[tail] <= pc + 4;
                 end
-                else if (is_jail) begin
+                else if (is_jalr) begin
                     value[tail] <= pc + 4;
                     stall <= 1;
                 end
