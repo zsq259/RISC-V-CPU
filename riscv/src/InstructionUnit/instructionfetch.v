@@ -18,7 +18,7 @@ module InstructionFetch (
 );
 
     reg [31:0] pc;
-    assign ready_out = rdy_in && ready_in && !stall;
+    assign ready_out = ready_in && !stall;
     assign inst_out = inst_in;
     assign pc_out = pc_change_flag ? pc_change : pc;
 
@@ -27,9 +27,17 @@ module InstructionFetch (
             pc <= 0;
             addr <= 0;
         end
-        else if (rdy_in && !stall && ready_in) begin            
-            pc <= pc + 4;            
-            addr <= pc;
+        else if (rdy_in) begin
+            if (!pc_change_flag) begin                
+                if (!stall && ready_in) begin
+                    pc <= pc + 4;            
+                    addr <= pc;    
+                end 
+            end
+            else begin
+                pc <= pc_change;
+                addr <= pc;
+            end
         end        
     end
 

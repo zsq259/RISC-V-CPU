@@ -23,6 +23,10 @@ module Decoder (
     output wire need_LSB,
 
     output wire issue_ready,
+
+    output wire pc_change_flag,
+    output wire [31:0] pc_change,
+
     output wire stall
 );
 
@@ -67,16 +71,16 @@ module Decoder (
 
     assign issue_ready = !stall && fetch_ready;
 
+    assign pc_change_flag = is_J && issue_ready;
+    assign pc_change = pc + imm;
+
     always @(posedge clk_in) begin
         if (rst_in) begin
 
         end
         else if (rdy_in) begin
             if (fetch_ready && issue_ready) begin
-                $display("inst: %h, %d", inst, pc);
-                if (is_J) begin
-                    
-                end
+                $display("inst: %h, %d", inst, pc);                
             end
         end
     end

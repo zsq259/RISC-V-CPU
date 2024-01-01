@@ -6,9 +6,11 @@ module Register (
     input wire [ 4:0] set_reg,  // register to be set
     input wire [31:0] set_val,  // value to be set    
 
-    input wire [ 4:0] set_reg_q,  // q_i to be set
-    input wire [31:0] set_val_q,  // q_i value to be set
-    input wire        set_rdy_q,  // q_i ready to be set
+    input wire [ 4:0] set_reg_q_1,  // q_i to be set from issue
+    input wire [31:0] set_val_q_1,  // q_i value to be set    
+
+    input wire [ 4:0] set_reg_q_2,  // q_i to be set from commit
+    input wire [31:0] set_val_q_2,  // q_i value to be set
 
     input wire [4:0] get_reg_1,  // register1 to be read
     input wire [4:0] get_reg_2,  // register2 to be read
@@ -45,9 +47,14 @@ module Register (
             if (set_reg != 0) begin
                 regfile[set_reg] <= set_val;
             end
-            if (set_reg_q != 0) begin
-                q[set_reg_q] <= set_val_q;
-                ready[set_reg_q] <= set_rdy_q;
+            if (set_reg_q_1 != 0) begin
+                q[set_reg_q_1] <= set_val_q_1;
+                ready[set_reg_q_1] <= 1'b0;
+            end
+            if (set_reg_q_2 != 0 && set_reg_q_2 != set_reg_q_1) begin
+                if (q[set_reg_q_2] == set_val_q_2) begin
+                    ready[set_reg_q_2] <= 1'b1;
+                end                
             end
         end
     end

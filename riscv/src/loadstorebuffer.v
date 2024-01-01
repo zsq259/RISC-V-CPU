@@ -43,6 +43,13 @@ module LoadStoreBuffer #(
     input wire [`RoB_BITS-1:0] RoB_rdy_2,
     input wire [31:0] RoB_value_2,
 
+    output wire get_RoB_id_1,  // get value from RoB if q_i is not ready
+    output wire get_RoB_id_2,
+    input wire RoB_busy_1,
+    input wire RoB_busy_2,
+    input wire [31:0] get_RoB_value_1,
+    input wire [31:0] get_RoB_value_2,
+
     output wire d_wating,
     output wire d_wr,
     output wire [2:0] d_len,
@@ -100,6 +107,9 @@ module LoadStoreBuffer #(
     assign LSB_funish_id = dest[head];
     assign LSB_finish_value = mem_result;
 
+    assign get_RoB_id_1 = q_rs1;
+    assign get_RoB_id_2 = q_rs2;
+
     always @(posedge clk_in) begin
         if (rst_in) begin
             head <= 0;
@@ -155,6 +165,11 @@ module LoadStoreBuffer #(
                         qj[tail]  <= 0;
                         rdj[tail] <= 1;                                        
                     end
+                    else if (!RoB_busy_1) begin
+                        vj[tail] <= get_RoB_value_1;
+                        qj[tail]  <= 0;
+                        rdj[tail] <= 1;                    
+                    end
                     else begin
                         qj[tail]  <= q_rs1;
                         rdj[tail] <= 0;
@@ -176,6 +191,11 @@ module LoadStoreBuffer #(
                             vk[tail]  <= RoB_value_2;
                             qk[tail]  <= 0;
                             rdk[tail] <= 1;
+                        end
+                        else if (!RoB_busy_2) begin
+                            vk[tail] <= get_RoB_value_2;
+                            qk[tail]  <= 0;
+                            rdk[tail] <= 1;                    
                         end
                         else begin
                             qk[tail]  <= q_rs2;

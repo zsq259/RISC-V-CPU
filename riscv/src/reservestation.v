@@ -20,6 +20,7 @@ module ReserveStation #(
     input wire funct7,
     input wire [31:0] imm,
 
+    // for register
     input wire [`RoB_BITS-1:0] q_rs1,
     input wire [`RoB_BITS-1:0] q_rs2,
     input wire q_ready_rs1,  // 1 if rs1 is not dependent
@@ -37,13 +38,21 @@ module ReserveStation #(
     input wire [`RoB_BITS-1:0] RoB_rdy_2,
     input wire [31:0] RoB_value_2,
 
+    output wire get_RoB_id_1,  // get value from RoB if q_i is not ready
+    output wire get_RoB_id_2,
+    input wire RoB_busy_1,
+    input wire RoB_busy_2,
+    input wire [31:0] get_RoB_value_1,
+    input wire [31:0] get_RoB_value_2,
+
+    // for ALU
     input wire ALU_finish_rdy,
     output wire waiting_ALU,
     output wire [31:0] vj_ALU,
     output wire [31:0] vk_ALU,
     output wire [31:0] imm_ALU,
     output wire [5:0] op_ALU,
-
+    
     output wire RS_finish_rdy,
     output wire RS_finish_id,
     output wire RS_finish_value,
@@ -86,6 +95,9 @@ module ReserveStation #(
     assign vk_ALU = vk[rdy_work_id];
     assign imm_ALU = A[rdy_work_id];
     assign op_ALU = op[rdy_work_id];
+
+    assign get_RoB_id_1 = q_rs1;
+    assign get_RoB_id_2 = q_rs2;
 
     generate
         genvar i;
@@ -165,6 +177,11 @@ module ReserveStation #(
                             qj[id]  <= 0;
                             rdj[id] <= 1;
                         end
+                        else if (!RoB_busy_1) begin
+                            vj[id]  <= get_RoB_value_1;
+                            qj[id]  <= 0;
+                            rdj[id] <= 1;                        
+                        end
                         else begin
                             qj[id]  <= q_rs1;
                             rdj[id] <= 0;
@@ -192,6 +209,11 @@ module ReserveStation #(
                             vk[id]  <= RoB_value_2;
                             qk[id]  <= 0;
                             rdk[id] <= 1;
+                        end
+                        else if (!RoB_busy_2) begin
+                            vk[id]  <= get_RoB_value_2;
+                            qk[id]  <= 0;
+                            rdk[id] <= 1;                        
                         end
                         else begin
                             qk[id]  <= rs2;

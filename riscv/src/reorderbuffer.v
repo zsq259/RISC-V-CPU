@@ -24,12 +24,19 @@ module ReorderBuffer #(
     input wire LSB_finish_id,
     input wire [31:0] LSB_finish_value,
 
-    output wire RoB_id_1,
+    output wire RoB_id_1,  // boardcast after excute
     output wire RoB_id_2,
     output wire RoB_rdy_1,
     output wire RoB_rdy_2,
     output wire [31:0] RoB_value_1,
     output wire [31:0] RoB_value_2,
+
+    input wire get_RoB_id_1,  // get value from RoB if q_i is not ready
+    input wire get_RoB_id_2,
+    output wire RoB_busy_1,
+    output wire RoB_busy_2,
+    output wire [31:0] get_RoB_value_1,
+    output wire [31:0] get_RoB_value_2,
 
     output wire [BITS-1:0] RoB_head,
     output wire [BITS-1:0] RoB_tail,
@@ -37,6 +44,12 @@ module ReorderBuffer #(
 
     output wire set_reg_id,
     output wire set_reg_value,
+
+    output wire set_reg_q_1,  // q_i to be set from issue
+    output wire set_val_q_1,
+
+    output wire set_reg_q_2,  // q_i to be set from commit
+    output wire set_val_q_2,
 
     output reg stall
 );
@@ -63,8 +76,20 @@ module ReorderBuffer #(
     assign RoB_rdy_2 = LSB_finish_rdy;
     assign RoB_value_2 = LSB_finish_value;
 
+    assign RoB_busy_1 = busy[get_RoB_id_1];
+    assign RoB_busy_2 = busy[get_RoB_id_2];
+    assign get_RoB_value_1 = value[get_RoB_id_1];
+    assign get_RoB_value_2 = value[get_RoB_id_2];
+
     assign set_reg_id = (!free[head] && !busy[head] && (!op[head] || op[head] == 2'd3)) ? dest[head] : 0;
     assign set_reg_value = value[head];
+
+    assign set_reg_q_1 = (is_B || is_S) ? 0 : rd;
+    assign set_val_q_1 = tail;
+
+    assign set_reg_q_2 = op[head] ? 0 : dest[head];
+    assign set_val_q_2 = head;
+    
 
     always @(posedge clk_in) begin
         if (rst_in) begin
