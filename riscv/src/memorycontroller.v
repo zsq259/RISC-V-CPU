@@ -140,6 +140,7 @@ module MemoryController (
             3'b001:  sign_extend = {16'b0, mem_din[7:0], value[7:0]};
             3'b101:  sign_extend = {{16{mem_din[7]}}, mem_din[7:0], value[7:0]};
             3'b010:  sign_extend = {mem_din[7:0], value[23:0]};
+            3'b110:  sign_extend = {mem_din[7:0], value[23:0]};
             default: sign_extend = 0;
         endcase
     endfunction

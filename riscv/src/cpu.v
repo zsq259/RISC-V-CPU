@@ -37,6 +37,11 @@ module cpu (
     wire [31:0] m_res;
     wire [31:0] pc;
 
+    wire d_wr;
+    wire d_wating;
+    wire [31:0] d_addr;
+    wire [31:0] d_value;
+
     Cache cache (
         .clk_in(clk_in),
         .rst_in(rst_in),
@@ -51,6 +56,9 @@ module cpu (
         .i_addr(pc),
 
         .d_wating(1'b0),
+        .d_addr(d_addr),
+        .d_value(d_value),
+        .d_wr(d_wr),
 
         .i_result (m_res),
         .i_m_ready(i_ready)
@@ -252,6 +260,11 @@ module cpu (
 
         .RoB_busy_2(RoB_busy_2),
         .RoB_value_2(RoB_value_2),
+
+        .d_wating(d_wating),
+        .d_addr(d_addr),
+        .d_value(d_value),
+        .d_wr(d_wr),
 
         .full(LSB_full)
     );

@@ -4,7 +4,7 @@ module Register (
     input wire rdy_in,  // ready signal, pause cpu when low
 
     input wire [ 4:0] set_reg,  // register to be set
-    input wire [31:0] set_val,  // value to be set
+    input wire [31:0] set_val,  // value to be set    
 
     input wire [ 4:0] set_reg_q,  // q_i to be set
     input wire [31:0] set_val_q,  // q_i value to be set

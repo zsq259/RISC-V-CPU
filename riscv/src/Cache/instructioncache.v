@@ -35,8 +35,7 @@ module InstructionCache #(
                 block[i] <= 0;
             end
         end
-        else if (wr) begin
-            // $display("------------------------------addr: %d", addr);
+        else if (wr) begin            
             valid[index] <= 1;
             tags[index]  <= tag;
             block[index] <= value;

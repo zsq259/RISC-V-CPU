@@ -13,10 +13,17 @@ module Cache (
     input wire [31:0] i_addr,  // address
 
     // data cache
-    input wire d_wating,  // waiting for work data
+    input wire d_waiting,  // waiting for work data
+    input wire [31:0] d_addr,  // address
+    input wire [31:0] d_value,  // value to be written
+    input wire [2:0] d_len,  // length of data to be read/written
+    input wire d_wr,  // write/read signal (1 for write)
+
 
     output wire [31:0] i_result,  // result of instruction read operation
-    output wire i_m_ready  // ready to return instruction result and accept new instruction
+    output wire i_m_ready,  // ready to return instruction result and accept new instruction
+
+    output wire d_m_ready
 );
 
     wire i_hit;  // instruction hit signal
@@ -33,8 +40,10 @@ module Cache (
     reg [31:0] m_addr;  // address bus (only 17:0 is used)
     reg [31:0] m_value;  // value to be written
 
-    assign m_waiting = i_hit ? 0 : i_waiting | d_wating;
+    assign m_waiting = i_hit ? 0 : i_waiting | d_waiting;
     assign i_m_ready = i_hit ? i_hit : (m_ready && !m_waiting);
+
+    assign d_m_ready = m_ready && d_waiting;
 
     wire m_ready;  // ready to work
     wire [31:0] m_res;  // result of read operation    
@@ -90,10 +99,15 @@ module Cache (
         else if (rdy_in) begin
             case (state)
                 1'b0: begin  // vacant                        
-                    if (d_wating) begin
+                    if (d_waiting) begin
+                        state <= 1;
+                        m_wr <= d_wr;
+                        m_len <= d_len;
+                        m_addr <= d_addr;
+                        m_value <= d_value;
                     end
                     else if (i_waiting) begin
-                        if (i_hit) begin                            
+                        if (i_hit) begin
                         end
                         else begin
                             state <= 1;

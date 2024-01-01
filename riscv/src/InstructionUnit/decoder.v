@@ -57,7 +57,7 @@ module Decoder (
     //     sign_extend = value[len-1] ? value | (32'b1 >> len << len) : value ^ (value >> len << len);
     // endfunction
 
-    assign imm = is_U ? {imm_U, 12'b0} :  //
+    assign imm = is_U ? {imm_U, 12'b0}:  //
         is_J ? {{11{imm_J[20]}}, imm_J} :  // sign_extend({11'b0, imm_J}, 5'd21)
         is_B ? {{19{imm_B[12]}}, imm_B} :  // sign_extend({19'b0, imm_B}, 5'd13)
         is_S ? {{20{imm_S[11]}}, imm_S} :  // sign_extend({20'b0, imm_S}, 5'd12)
@@ -74,6 +74,9 @@ module Decoder (
         else if (rdy_in) begin
             if (fetch_ready && issue_ready) begin
                 $display("inst: %h, %d", inst, pc);
+                if (is_J) begin
+                    
+                end
             end
         end
     end
