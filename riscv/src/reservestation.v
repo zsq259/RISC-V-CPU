@@ -45,6 +45,8 @@ module ReserveStation #(
     input wire [31:0] get_RoB_value_1,
     input wire [31:0] get_RoB_value_2,
 
+    input wire RoB_clear,
+
     // for ALU
     input wire ALU_finish_rdy,
     output wire waiting_ALU,
@@ -129,7 +131,7 @@ module ReserveStation #(
     wire [BITS-1:0] finish_id = finished[1];
 
     always @(posedge clk_in) begin
-        if (rst_in) begin
+        if (rst_in || RoB_clear) begin
             for (integer i = 0; i < SIZE; i = i + 1) begin
                 busy[i]    <= 0;
                 working[i] <= 0;

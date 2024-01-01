@@ -51,6 +51,8 @@ module ReorderBuffer #(
     output wire set_reg_q_2,  // q_i to be set from commit
     output wire set_val_q_2,
 
+    output wire RoB_clear,
+    output wire [31:0] RoB_clear_pc_value,
     output reg stall
 );
     reg [BITS-1:0] head;
@@ -90,9 +92,10 @@ module ReorderBuffer #(
     assign set_reg_q_2 = op[head] ? 0 : dest[head];
     assign set_val_q_2 = head;
     
+    assign RoB_clear = !free[head] && !busy[head] && (op[head] == 2'd3 || (op[head] == 2'd2 && (value[head] & 32'd1)));
 
     always @(posedge clk_in) begin
-        if (rst_in) begin
+        if (rst_in || RoB_clear) begin
             head  <= 0;
             tail  <= 0;
             stall <= 0;

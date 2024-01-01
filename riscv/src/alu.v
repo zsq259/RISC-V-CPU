@@ -9,6 +9,8 @@ module ALU (
     input wire [ 5:0] op,
     input wire waiting,
 
+    input wire RoB_clear,
+
     output wire ALU_finish_rdy,
     output wire [31:0] ALU_value
 );
@@ -20,7 +22,7 @@ assign ALU_finish_rdy = ready;
 assign ALU_value = value;
 
 always @(posedge clk_in) begin
-    if (rst_in) begin
+    if (rst_in || RoB_clear) begin
         ready <= 0;
         value <= 0;
     end

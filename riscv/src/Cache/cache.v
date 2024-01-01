@@ -8,6 +8,8 @@ module Cache (
     output wire [31:0] mem_a,     // address bus (only 17:0 is used)
     output wire        mem_wr,    // write/read signal (1 for write)
 
+    input wire RoB_clear,
+
     // instruction cache
     input wire i_waiting,  // waiting for work instruction
     input wire [31:0] i_addr,  // address
@@ -89,7 +91,7 @@ module Cache (
     );
 
     always @(posedge clk_in) begin
-        if (rst_in) begin
+        if (rst_in || RoB_clear) begin
             m_wr <= 0;
             m_len <= 0;
             m_addr <= 0;

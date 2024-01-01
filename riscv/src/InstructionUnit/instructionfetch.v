@@ -10,6 +10,9 @@ module InstructionFetch (
     input wire ready_in,
     input wire [31:0] inst_in,  // instruction input
 
+    input wire RoB_clear,
+    input wire [31:0] RoB_clear_pc_value,
+
     output wire ready_out,  // ready signal;
     output wire [31:0] inst_out,  // instruction output
     output wire [31:0] pc_out,  // program counter
@@ -28,15 +31,21 @@ module InstructionFetch (
             addr <= 0;
         end
         else if (rdy_in) begin
-            if (!pc_change_flag) begin                
-                if (!stall && ready_in) begin
-                    pc <= pc + 4;            
-                    addr <= pc;    
-                end 
+            if (RoB_clear) begin
+                pc <= RoB_clear_pc_value;
+                addr <= RoB_clear_pc_value;
             end
-            else begin
-                pc <= pc_change;
-                addr <= pc;
+            else begin                            
+                if (!pc_change_flag) begin                
+                    if (!stall && ready_in) begin
+                        pc <= pc + 4;            
+                        addr <= pc;    
+                    end
+                end
+                else begin
+                    pc <= pc_change;
+                    addr <= pc;
+                end
             end
         end        
     end

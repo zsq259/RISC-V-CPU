@@ -11,6 +11,7 @@ module Decoder (
     input wire fetch_ready,
     input wire [31:0] inst,
     input wire [31:0] pc,
+    input wire pred_res,
 
     output wire [6:0] opcode,
     output wire [4:0] rd,
@@ -71,7 +72,7 @@ module Decoder (
 
     assign issue_ready = !stall && fetch_ready;
 
-    assign pc_change_flag = is_J && issue_ready;
+    assign pc_change_flag = (is_J || (is_B && pred_res)) && issue_ready;
     assign pc_change = pc + imm;
 
     always @(posedge clk_in) begin

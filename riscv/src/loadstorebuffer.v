@@ -43,6 +43,8 @@ module LoadStoreBuffer #(
     input wire [`RoB_BITS-1:0] RoB_rdy_2,
     input wire [31:0] RoB_value_2,
 
+    input wire RoB_clear,
+
     output wire get_RoB_id_1,  // get value from RoB if q_i is not ready
     output wire get_RoB_id_2,
     input wire RoB_busy_1,
@@ -111,7 +113,7 @@ module LoadStoreBuffer #(
     assign get_RoB_id_2 = q_rs2;
 
     always @(posedge clk_in) begin
-        if (rst_in) begin
+        if (rst_in || RoB_clear) begin
             head <= 0;
             tail <= 0;
             for (integer i = 0; i < SIZE; i = i + 1) begin
