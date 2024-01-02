@@ -221,25 +221,27 @@ module LoadStoreBuffer #(
             end
 
             for (integer i = 0; i < SIZE; i = i + 1) begin
-                if (!rdj[i] && qj[i] == RoB_id_1 && RoB_rdy_1) begin
-                    vj[i]  <= RoB_value_1;
-                    qj[i]  <= 0;
-                    rdj[i] <= 1;
-                end
-                if (!rdj[i] && qj[i] == RoB_id_2 && RoB_rdy_2) begin
-                    vj[i]  <= RoB_value_2;
-                    qj[i]  <= 0;
-                    rdj[i] <= 1;
-                end
-                if (!rdk[i] && qk[i] == RoB_id_1 && RoB_rdy_1) begin
-                    vk[i]  <= RoB_value_1;
-                    qk[i]  <= 0;
-                    rdk[i] <= 1;
-                end
-                if (!rdk[i] && qk[i] == RoB_id_2 && RoB_rdy_2) begin
-                    vk[i]  <= RoB_value_2;
-                    qk[i]  <= 0;
-                    rdk[i] <= 1;
+                if (busy[i]) begin                                    
+                    if (!rdj[i] && qj[i] == RoB_id_1 && RoB_rdy_1) begin
+                        vj[i]  <= RoB_value_1;
+                        qj[i]  <= 0;
+                        rdj[i] <= 1;
+                    end
+                    if (!rdj[i] && qj[i] == RoB_id_2 && RoB_rdy_2) begin
+                        vj[i]  <= RoB_value_2;
+                        qj[i]  <= 0;
+                        rdj[i] <= 1;
+                    end
+                    if (!rdk[i] && qk[i] == RoB_id_1 && RoB_rdy_1) begin
+                        vk[i]  <= RoB_value_1;
+                        qk[i]  <= 0;
+                        rdk[i] <= 1;
+                    end
+                    if (!rdk[i] && qk[i] == RoB_id_2 && RoB_rdy_2) begin
+                        vk[i]  <= RoB_value_2;
+                        qk[i]  <= 0;
+                        rdk[i] <= 1;
+                    end
                 end
             end
         end

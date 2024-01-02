@@ -125,11 +125,14 @@ module ReserveStation #(
     endgenerate
 
     wire [31:0] dbg_vj0 = vj[0];
-    wire [31:0] dbg_vj = vj[1];
-    wire dbg_rdjk = rdjk[rdy_work_id];
+    wire [31:0] dbg_vj = vj[4'b0001];
+    wire dbg_rdj = rdj[1];
+    wire dbg_rdk = rdk[1];
+    wire dbg_rdjk = rdjk[1];
+    wire dbg_busy = busy[1];
     wire dbg_working = working[rdy_work_id];
     wire dbg_waiting = waiting[rdy_work_id];
-    wire dbg_finished = finish_work[rdy_work_id];
+    wire dbg_finished = finish_work[rdy_work_id];    
 
     wire [BITS-1:0] id = free[1];
     wire ready = need_RS && !busy[id];
@@ -153,7 +156,7 @@ module ReserveStation #(
                 A[i]       <= 0;
                 dest[i]    <= 0;
                 op[i]      <= 0;
-            end
+            end            
         end
         else if (rdy_in) begin
             if (issue_ready && ready) begin
@@ -172,8 +175,7 @@ module ReserveStation #(
                 end
 
                 if (!(is_U || is_J)) begin
-                    if (q_ready_rs1) begin
-                        // if (is_I && rs1 == 5'd12 && rs2 == 5'd1) $display("vj should be: %h, id = %d", value_rs1, id);
+                    if (q_ready_rs1) begin                        
                         vj[id]  <= value_rs1;
                         qj[id]  <= 0;
                         rdj[id] <= 1;
@@ -206,6 +208,7 @@ module ReserveStation #(
                     qj[id]  <= 0;
                     rdj[id] <= 1;
                 end
+
                 if (is_B || is_S || is_R) begin
                     if (q_ready_rs2) begin
                         vk[id]  <= value_rs2;
@@ -254,25 +257,27 @@ module ReserveStation #(
             end
 
             for (integer i = 0; i < SIZE; i = i + 1) begin
-                if (!rdj[i] && qj[i] == RoB_id_1 && RoB_rdy_1) begin
-                    vj[i]  <= RoB_value_1;
-                    qj[i]  <= 0;
-                    rdj[i] <= 1;
-                end
-                if (!rdj[i] && qj[i] == RoB_id_2 && RoB_rdy_2) begin
-                    vj[i]  <= RoB_value_2;
-                    qj[i]  <= 0;
-                    rdj[i] <= 1;
-                end
-                if (!rdk[i] && qk[i] == RoB_id_1 && RoB_rdy_1) begin
-                    vk[i]  <= RoB_value_1;
-                    qk[i]  <= 0;
-                    rdk[i] <= 1;
-                end
-                if (!rdk[i] && qk[i] == RoB_id_2 && RoB_rdy_2) begin
-                    vk[i]  <= RoB_value_2;
-                    qk[i]  <= 0;
-                    rdk[i] <= 1;
+                if (busy[i] && working[i]) begin                                    
+                    if (busy[i] && working[i] && !rdj[i] && qj[i] == RoB_id_1 && RoB_rdy_1) begin
+                        vj[i]  <= RoB_value_1;
+                        qj[i]  <= 0;
+                        rdj[i] <= 1;
+                    end
+                    if (busy[i] && working[i] && !rdj[i] && qj[i] == RoB_id_2 && RoB_rdy_2) begin
+                        vj[i]  <= RoB_value_2;
+                        qj[i]  <= 0;
+                        rdj[i] <= 1;
+                    end
+                    if (busy[i] && working[i] && !rdk[i] && qk[i] == RoB_id_1 && RoB_rdy_1) begin
+                        vk[i]  <= RoB_value_1;
+                        qk[i]  <= 0;
+                        rdk[i] <= 1;
+                    end
+                    if (busy[i] && working[i] && !rdk[i] && qk[i] == RoB_id_2 && RoB_rdy_2) begin
+                        vk[i]  <= RoB_value_2;
+                        qk[i]  <= 0;
+                        rdk[i] <= 1;
+                    end
                 end
             end
         end
