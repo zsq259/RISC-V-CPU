@@ -83,7 +83,7 @@ module Decoder (
         end
         else if (rdy_in) begin
             if (fetch_ready && issue_ready) begin
-                $display("inst: %h, %d %h", inst, pc, pc);
+                // $display("inst: %h, %d %h", inst, pc, pc);
             end
         end
     end

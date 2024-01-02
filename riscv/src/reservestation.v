@@ -173,7 +173,7 @@ module ReserveStation #(
 
                 if (!(is_U || is_J)) begin
                     if (q_ready_rs1) begin
-                        if (is_I && rs1 == 5'd12 && rs2 == 5'd1) $display("vj should be: %h, id = %d", value_rs1, id);
+                        // if (is_I && rs1 == 5'd12 && rs2 == 5'd1) $display("vj should be: %h, id = %d", value_rs1, id);
                         vj[id]  <= value_rs1;
                         qj[id]  <= 0;
                         rdj[id] <= 1;
