@@ -179,12 +179,12 @@ module ReserveStation #(
                         rdj[id] <= 1;
                     end
                     else begin
-                        if (RoB_rdy_2 && q_rs1 == RoB_id_1) begin
+                        if (RoB_rdy_1 && (q_rs1 == RoB_id_1)) begin
                             vj[id]  <= RoB_value_1;
                             qj[id]  <= 0;
                             rdj[id] <= 1;
                         end
-                        else if (RoB_rdy_2 && q_rs1 == RoB_id_2) begin
+                        else if (RoB_rdy_2 && (q_rs1 == RoB_id_2)) begin
                             vj[id]  <= RoB_value_2;
                             qj[id]  <= 0;
                             rdj[id] <= 1;
@@ -195,6 +195,7 @@ module ReserveStation #(
                             rdj[id] <= 1;
                         end
                         else begin
+                            vj[id]  <= 0;
                             qj[id]  <= q_rs1;
                             rdj[id] <= 0;
                         end
@@ -212,12 +213,12 @@ module ReserveStation #(
                         rdk[id] <= 1;
                     end
                     else begin
-                        if (RoB_rdy_1 && q_rs2 == RoB_id_1) begin
+                        if (RoB_rdy_1 && (q_rs2 == RoB_id_1)) begin
                             vk[id]  <= RoB_value_1;
                             qk[id]  <= 0;
                             rdk[id] <= 1;
                         end
-                        else if (RoB_rdy_2 && q_rs2 == RoB_id_2) begin
+                        else if (RoB_rdy_2 && (q_rs2 == RoB_id_2)) begin
                             vk[id]  <= RoB_value_2;
                             qk[id]  <= 0;
                             rdk[id] <= 1;
@@ -228,6 +229,7 @@ module ReserveStation #(
                             rdk[id] <= 1;
                         end
                         else begin
+                            vk[id]  <= 0;
                             qk[id]  <= rs2;
                             rdk[id] <= 0;
                         end
