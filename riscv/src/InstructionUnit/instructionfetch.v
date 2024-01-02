@@ -23,7 +23,7 @@ module InstructionFetch (
     reg [31:0] pc;
     assign ready_out = ready_in && !stall;
     assign inst_out = inst_in;
-    assign pc_out = pc_change_flag ? pc_change : pc;
+    assign pc_out = pc;
 
     always @(posedge clk_in) begin
         if (rst_in) begin            

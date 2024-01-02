@@ -14,6 +14,9 @@ module Cache (
     input wire i_waiting,  // waiting for work instruction
     input wire [31:0] i_addr,  // address
 
+    output wire [31:0] i_result,  // result of instruction read operation
+    output wire i_m_ready,  // ready to return instruction result and accept new instruction
+    
     // data cache
     input wire d_waiting,  // waiting for work data
     input wire [31:0] d_addr,  // address
@@ -21,20 +24,25 @@ module Cache (
     input wire [2:0] d_len,  // length of data to be read/written
     input wire d_wr,  // write/read signal (1 for write)
 
-
-    output wire [31:0] i_result,  // result of instruction read operation
-    output wire i_m_ready,  // ready to return instruction result and accept new instruction
-
+    output wire [31:0] d_result,  // result of data read operation
     output wire d_m_ready
 );
-
+    
+    reg state;
+    reg [31:0] current_addr;
+    
     wire i_hit;  // instruction hit signal
     wire [31:0] i_res;  //result from instruction cache
     wire i_wr;  // write/read signal (1 for write) for instruction cache    
     assign i_result = i_hit ? i_res : m_res;
-    assign i_wr = state && m_ready;
 
+    assign i_wr = state && m_ready && (i_addr == current_addr) && !d_waiting;
 
+    
+    assign i_m_ready = (i_addr == current_addr) && (i_hit ? i_hit : (m_ready && !m_waiting)) && !d_waiting;
+
+    assign d_result = m_res;
+    assign d_m_ready = (d_addr == current_addr) && m_ready && d_waiting;
 
     reg m_wr;  // write/read signal (1 for write)
     wire m_waiting;  // waiting for work
@@ -42,15 +50,12 @@ module Cache (
     reg [31:0] m_addr;  // address bus (only 17:0 is used)
     reg [31:0] m_value;  // value to be written
 
-    assign m_waiting = i_hit ? 0 : i_waiting | d_waiting;
-    assign i_m_ready = i_hit ? i_hit : (m_ready && !m_waiting);
-
-    assign d_m_ready = m_ready && d_waiting;
-
+    assign m_waiting = (i_hit ? 0 : i_waiting) || d_waiting;
+  
     wire m_ready;  // ready to work
     wire [31:0] m_res;  // result of read operation    
 
-    reg state;
+    
 
 
 
@@ -80,6 +85,8 @@ module Cache (
         .mem_a(mem_a),
         .mem_wr(mem_wr),
 
+        .RoB_clear(RoB_clear),
+
         .waiting(m_waiting),
         .wr(m_wr),
         .len(m_len),
@@ -97,6 +104,7 @@ module Cache (
             m_addr <= 0;
             m_value <= 0;
             state <= 0;
+            current_addr <= 0;
         end
         else if (rdy_in) begin
             case (state)
@@ -107,9 +115,11 @@ module Cache (
                         m_len <= d_len;
                         m_addr <= d_addr;
                         m_value <= d_value;
+                        current_addr <= d_addr;
                     end
                     else if (i_waiting) begin
                         if (i_hit) begin
+                            current_addr <= i_addr;
                         end
                         else begin
                             state <= 1;
@@ -117,6 +127,7 @@ module Cache (
                             m_len <= 2;
                             m_addr <= i_addr;
                             m_value <= 0;
+                            current_addr <= i_addr;
                         end
                     end
                 end

@@ -71,20 +71,21 @@ module MemoryController (
 
             case (state)
                 3'b000: begin
-                    if (need_work) begin  // start working                    
-                        busy <= 1;
+                    if (need_work) begin  // start working                        
                         work_wr <= wr;
                         work_len <= len;
                         work_addr <= addr;
                         work_value <= value;
                         if (len[1:0]) begin
                             state <= 3'b001;
-                            current_wr <= work_wr;
+                            busy <= 1;
+                            current_wr <= wr;
                             current_addr <= addr + 1;
-                            current_value <= work_value[15:8];
+                            current_value <= value[15:8];
                         end
                         else begin
                             state <= 3'b000;
+                            busy <= 0;
                             current_wr <= 0;
                             current_value <= 0;
                             // special case: addr[17:16] == 2'b11

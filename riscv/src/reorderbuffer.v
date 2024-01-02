@@ -17,22 +17,22 @@ module ReorderBuffer #(
     input wire [4:0] rd,
 
     input wire RS_finish_rdy,
-    input wire RS_finish_id,
+    input wire [BITS-1:0] RS_finish_id,
     input wire [31:0] RS_finish_value,
 
     input wire LSB_finish_rdy,
-    input wire LSB_finish_id,
+    input wire [BITS-1:0] LSB_finish_id,
     input wire [31:0] LSB_finish_value,
 
-    output wire RoB_id_1,  // boardcast after excute
-    output wire RoB_id_2,
+    output wire [BITS-1:0] RoB_id_1,  // boardcast after excute
+    output wire [BITS-1:0] RoB_id_2,
     output wire RoB_rdy_1,
     output wire RoB_rdy_2,
     output wire [31:0] RoB_value_1,
     output wire [31:0] RoB_value_2,
 
-    input wire get_RoB_id_1,  // get value from RoB if q_i is not ready
-    input wire get_RoB_id_2,
+    input wire [BITS-1:0] get_RoB_id_1,  // get value from RoB if q_i is not ready
+    input wire [BITS-1:0] get_RoB_id_2,
     output wire RoB_busy_1,
     output wire RoB_busy_2,
     output wire [31:0] get_RoB_value_1,
@@ -42,17 +42,17 @@ module ReorderBuffer #(
     output wire [BITS-1:0] RoB_tail,
     output wire full,
 
-    output wire set_reg_id,
-    output wire set_reg_value,
+    output wire [ 4:0] set_reg_id,
+    output wire [31:0] set_reg_value,
 
-    output wire set_reg_q_1,  // q_i to be set from issue
-    output wire set_val_q_1,
-
-    output wire set_reg_q_2,  // q_i to be set from commit
-    output wire set_val_q_2,
+    output wire [ 4:0] set_reg_q_1,  // q_i to be set from issue
+    output wire [31:0] set_val_q_1,
+    output wire [ 4:0] set_reg_q_2,  // q_i to be set from commit
+    output wire [31:0] set_val_q_2,
 
     output wire RoB_clear,
     output wire [31:0] RoB_clear_pc_value,
+
     output reg stall
 );
     reg [BITS-1:0] head;
@@ -62,20 +62,21 @@ module ReorderBuffer #(
     reg [31:0] value[Size-1:0];
     reg [31:0] dest[Size-1:0];
     reg [1:0] op[Size-1:0];  // 0: load, 1: store, 2: branch, 3: jalr
-
+    reg [31:0] pc_jalr[Size-1:0];
     wire is_J = opcode == 7'b1101111;
     wire is_B = opcode == 7'b1100011;
     wire is_S = opcode == 7'b0100011;
     wire is_jalr = opcode == 7'b1100111;
 
+    assign RoB_head = head;
     assign RoB_tail = tail;
     assign full = head == tail && !free[head];
 
     assign RoB_id_1 = RS_finish_id;
-    assign RoB_rdy_1 = RS_finish_rdy;
-    assign RoB_value_1 = RS_finish_value;
     assign RoB_id_2 = LSB_finish_id;
+    assign RoB_rdy_1 = RS_finish_rdy;
     assign RoB_rdy_2 = LSB_finish_rdy;
+    assign RoB_value_1 = RS_finish_value;
     assign RoB_value_2 = LSB_finish_value;
 
     assign RoB_busy_1 = busy[get_RoB_id_1];
@@ -83,16 +84,22 @@ module ReorderBuffer #(
     assign get_RoB_value_1 = value[get_RoB_id_1];
     assign get_RoB_value_2 = value[get_RoB_id_2];
 
-    assign set_reg_id = (!free[head] && !busy[head] && (!op[head] || op[head] == 2'd3)) ? dest[head] : 0;
+    assign set_reg_id = (!free[head] && !busy[head] && (op[head] == 2'd0 || op[head] == 2'd3)) ? dest[head] : 0;
     assign set_reg_value = value[head];
 
-    assign set_reg_q_1 = (is_B || is_S) ? 0 : rd;
+    assign set_reg_q_1 = issue_ready ? ((is_B || is_S) ? 0 : rd) : 0;
     assign set_val_q_1 = tail;
 
-    assign set_reg_q_2 = op[head] ? 0 : dest[head];
+    assign set_reg_q_2 = !free[head] && !busy[head] ? (op[head] ? 0 : dest[head]) : 0;
     assign set_val_q_2 = head;
-    
+
     assign RoB_clear = !free[head] && !busy[head] && (op[head] == 2'd3 || (op[head] == 2'd2 && (value[head] & 32'd1)));
+    assign RoB_clear_pc_value = op[head] == 2'd2? dest[head] : pc_jalr[head];
+
+    wire dbg_busy = busy[head];
+    wire dbg_free = free[head];
+    wire [1:0] dbg_op = op[head];
+    wire [31:0] dbg_value = value[head];
 
     always @(posedge clk_in) begin
         if (rst_in || RoB_clear) begin
@@ -105,16 +112,17 @@ module ReorderBuffer #(
                 value[i] <= 0;
                 dest[i]  <= 0;
                 op[i]    <= 0;
+                pc_jalr[i] <= 0;
             end
         end
         else if (rdy_in) begin
             if (issue_ready) begin
-                tail <= tail + 1;
+                tail <= tail + 1;                
                 if (is_J) begin
                     value[tail] <= pc + 4;
                 end
                 else if (is_jalr) begin
-                    value[tail] <= pc + 4;
+                    value[tail] <= pc + 4;                    
                     stall <= 1;
                 end
                 else if (is_B) begin
@@ -155,7 +163,11 @@ module ReorderBuffer #(
                 busy[RS_finish_id] <= 0;
                 if (op[RS_finish_id] != 2'd2) begin
                     if (!value[RS_finish_id]) begin
+                        // $display("RoB: RS_finish_value is 0: %h", RS_finish_value);
                         value[RS_finish_id] <= RS_finish_value;
+                    end
+                    else if (op[RS_finish_id] == 2'd3) begin
+                        pc_jalr[RS_finish_id] <= RS_finish_value;
                     end
                 end
                 else begin

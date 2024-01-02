@@ -32,8 +32,8 @@ module Register (
     assign get_val_1 = regfile[get_reg_1];
     assign get_val_2 = regfile[get_reg_2];
     assign get_q_value_1 = q[get_reg_1];
-    assign get_q_ready_1 = ready[get_reg_1];
     assign get_q_value_2 = q[get_reg_2];
+    assign get_q_ready_1 = ready[get_reg_1];    
     assign get_q_ready_2 = ready[get_reg_2];
 
 
@@ -41,6 +41,8 @@ module Register (
         if (rst_in) begin
             for (integer i = 0; i < 32; i = i + 1) begin
                 regfile[i] <= 0;
+                q[i] <= 0;
+                ready[i] <= 1'b1;
             end
         end
         else if (rdy_in) begin
@@ -58,10 +60,6 @@ module Register (
             end
         end
     end
-
-`ifdef DEBUG
-
-`endif
 
 
 endmodule

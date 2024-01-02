@@ -32,14 +32,14 @@ module ReserveStation #(
     input wire [`RoB_BITS-1:0] RoB_tail,
 
     input wire [`RoB_BITS-1:0] RoB_id_1,  // latest executed id in RoB
-    input wire [`RoB_BITS-1:0] RoB_rdy_1,
+    input wire RoB_rdy_1,
     input wire [31:0] RoB_value_1,
     input wire [`RoB_BITS-1:0] RoB_id_2,
-    input wire [`RoB_BITS-1:0] RoB_rdy_2,
+    input wire RoB_rdy_2,
     input wire [31:0] RoB_value_2,
 
-    output wire get_RoB_id_1,  // get value from RoB if q_i is not ready
-    output wire get_RoB_id_2,
+    output wire [`RoB_BITS-1:0] get_RoB_id_1,  // get value from RoB if q_i is not ready
+    output wire [`RoB_BITS-1:0] get_RoB_id_2,
     input wire RoB_busy_1,
     input wire RoB_busy_2,
     input wire [31:0] get_RoB_value_1,
@@ -54,10 +54,8 @@ module ReserveStation #(
     output wire [31:0] vk_ALU,
     output wire [31:0] imm_ALU,
     output wire [5:0] op_ALU,
-    
-    output wire RS_finish_rdy,
-    output wire RS_finish_id,
-    output wire RS_finish_value,
+
+    output wire [`RoB_BITS-1:0] RS_finish_id,
 
     output wire full
 );
@@ -83,7 +81,7 @@ module ReserveStation #(
     reg rdj[SIZE-1:0];  // 1 if no dependency
     reg rdk[SIZE-1:0];  // 1 if no dependency
     reg [31:0] A[SIZE-1:0];
-    reg [31:0] dest[SIZE-1:0];  // id in RoB
+    reg [`RoB_BITS-1:0] dest[SIZE-1:0];  // id in RoB
 
     wire [BITS-1:0] free[SIZE-1:0];
 
@@ -92,7 +90,7 @@ module ReserveStation #(
     wire [BITS-1:0] rdy_work[SIZE-1:0];  // ready to work id
     wire [BITS-1:0] finished[SIZE-1:0];  // finished working id
 
-    assign waiting_ALU = rdy_work[rdy_work_id] && busy[rdy_work_id] && working[rdy_work_id];
+    assign waiting_ALU = rdjk[rdy_work_id] && busy[rdy_work_id] && working[rdy_work_id];
     assign vj_ALU = vj[rdy_work_id];
     assign vk_ALU = vk[rdy_work_id];
     assign imm_ALU = A[rdy_work_id];
@@ -101,13 +99,15 @@ module ReserveStation #(
     assign get_RoB_id_1 = q_rs1;
     assign get_RoB_id_2 = q_rs2;
 
+    assign RS_finish_id = dest[rdy_work_id];
+
     generate
         genvar i;
-        for (i = 1; i < (1 << BITS); i = i + 1) begin : gen0
-            assign rdjk[i] = rdj[i] && rdk[i] && working[i] && busy[i];
-            assign finish_work[i] = !working[i] && busy[i];
+        for (i = 0; i < (1 << BITS); i = i + 1) begin : gen0
+            assign rdjk[i] = rdj[i] && rdk[i] && busy[i];
+            assign finish_work[i] = !working[i] && !waiting[i] && busy[i];
         end
-        for (i = 1; i < (1 << (BITS - 1)); i = i + 1) begin : gen1
+        for (i = 0; i < (1 << (BITS - 1)); i = i + 1) begin : gen1
             assign free[i] = !busy[free[i<<1]] ? free[i<<1] : free[(i<<1)|1];
 
             assign rdy_work[i] = rdjk[rdy_work[i<<1]] ? rdy_work[i<<1] : rdy_work[(i<<1)|1];
@@ -123,6 +123,14 @@ module ReserveStation #(
         end
 
     endgenerate
+
+    wire [31:0] dbg_vj0 = vj[0];
+    wire [31:0] dbg_vj = vj[1];
+    wire dbg_rdjk = rdjk[rdy_work_id];
+    wire dbg_working = working[rdy_work_id];
+    wire dbg_waiting = waiting[rdy_work_id];
+    wire dbg_finished = finish_work[rdy_work_id];
+
     wire [BITS-1:0] id = free[1];
     wire ready = need_RS && !busy[id];
     assign full = busy[id];
@@ -144,7 +152,7 @@ module ReserveStation #(
                 rdk[i]     <= 0;
                 A[i]       <= 0;
                 dest[i]    <= 0;
-                op[i]      <= 0;                
+                op[i]      <= 0;
             end
         end
         else if (rdy_in) begin
@@ -162,8 +170,10 @@ module ReserveStation #(
                     else if (is_B) op[id] <= {funct7, funct3, 2'd2};
                     else if (is_R) op[id] <= {funct7, funct3, 2'd3};
                 end
+
                 if (!(is_U || is_J)) begin
                     if (q_ready_rs1) begin
+                        if (is_I && rs1 == 5'd12 && rs2 == 5'd1) $display("vj should be: %h, id = %d", value_rs1, id);
                         vj[id]  <= value_rs1;
                         qj[id]  <= 0;
                         rdj[id] <= 1;
@@ -182,7 +192,7 @@ module ReserveStation #(
                         else if (!RoB_busy_1) begin
                             vj[id]  <= get_RoB_value_1;
                             qj[id]  <= 0;
-                            rdj[id] <= 1;                        
+                            rdj[id] <= 1;
                         end
                         else begin
                             qj[id]  <= q_rs1;
@@ -215,7 +225,7 @@ module ReserveStation #(
                         else if (!RoB_busy_2) begin
                             vk[id]  <= get_RoB_value_2;
                             qk[id]  <= 0;
-                            rdk[id] <= 1;                        
+                            rdk[id] <= 1;
                         end
                         else begin
                             qk[id]  <= rs2;
@@ -230,7 +240,7 @@ module ReserveStation #(
                 end
             end
 
-            if (rdy_work[rdy_work_id] && busy[rdy_work_id]) begin
+            if (rdj[rdy_work_id] && rdk[rdy_work_id] && busy[rdy_work_id]) begin
                 if (working[rdy_work_id]) begin
                     working[rdy_work_id] <= 0;
                     waiting[rdy_work_id] <= 1;

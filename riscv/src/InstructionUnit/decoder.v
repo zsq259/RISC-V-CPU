@@ -12,6 +12,7 @@ module Decoder (
     input wire [31:0] inst,
     input wire [31:0] pc,
     input wire pred_res,
+    output wire [31:0] pc_B_fail,
 
     output wire [6:0] opcode,
     output wire [4:0] rd,
@@ -53,7 +54,7 @@ module Decoder (
     wire [11:0] imm_I = inst[31:20];
     wire [11:0] imm_S = {inst[31:25], inst[11:7]};
     wire [12:0] imm_B = {inst[31], inst[7], inst[30:25], inst[11:8], 1'b0};
-    wire [31:0] imm_U = {inst[31:12], 12'b0};
+    wire [19:0] imm_U = inst[31:12];
     wire [20:0] imm_J = {inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
 
     // function [31:0] sign_extend;
@@ -62,7 +63,7 @@ module Decoder (
     //     sign_extend = value[len-1] ? value | (32'b1 >> len << len) : value ^ (value >> len << len);
     // endfunction
 
-    assign imm = is_U ? {imm_U, 12'b0}:  //
+    assign imm = is_U ? {imm_U, 12'b0} :  //
         is_J ? {{11{imm_J[20]}}, imm_J} :  // sign_extend({11'b0, imm_J}, 5'd21)
         is_B ? {{19{imm_B[12]}}, imm_B} :  // sign_extend({19'b0, imm_B}, 5'd13)
         is_S ? {{20{imm_S[11]}}, imm_S} :  // sign_extend({20'b0, imm_S}, 5'd12)
@@ -74,6 +75,7 @@ module Decoder (
 
     assign pc_change_flag = (is_J || (is_B && pred_res)) && issue_ready;
     assign pc_change = pc + imm;
+    assign pc_B_fail = pred_res ? pc + 4 : pc + imm;
 
     always @(posedge clk_in) begin
         if (rst_in) begin
@@ -81,7 +83,7 @@ module Decoder (
         end
         else if (rdy_in) begin
             if (fetch_ready && issue_ready) begin
-                $display("inst: %h, %d", inst, pc);                
+                $display("inst: %h, %d %h", inst, pc, pc);
             end
         end
     end

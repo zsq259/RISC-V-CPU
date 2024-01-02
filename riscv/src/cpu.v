@@ -1,5 +1,6 @@
 // RISCV32I CPU top module
 // port modification allowed for debugging purposes
+`include "const.v"
 
 module cpu (
     input wire clk_in,  // system clock signal
@@ -29,18 +30,24 @@ module cpu (
     // - 0x30004 write: indicates program stop (will output '\0' through uart tx)    
 
     reg waiting;
-    wire i_ready;
+    wire i_m_ready;
 
     wire fetch_ready;
     wire [31:0] inst;
 
-    wire [31:0] m_res;
+    wire [31:0] i_result;
     wire [31:0] pc;
 
     wire d_wr;
-    wire d_wating;
+    wire d_waiting;
     wire [31:0] d_addr;
     wire [31:0] d_value;
+    wire [2:0] d_len;
+    wire [31:0] d_result;
+    wire d_m_ready;
+
+    wire RoB_clear;
+    wire [31:0] RoB_clear_pc_value;
 
     Cache cache (
         .clk_in(clk_in),
@@ -52,31 +59,46 @@ module cpu (
         .mem_a(mem_a),
         .mem_wr(mem_wr),
 
+        .RoB_clear(RoB_clear),
+
         .i_waiting(1'b1),
         .i_addr(pc),
 
-        .d_wating(1'b0),
+        .i_result (i_result),
+        .i_m_ready(i_m_ready),
+
+        .d_waiting(d_waiting),
         .d_addr(d_addr),
         .d_value(d_value),
+        .d_len(d_len),
         .d_wr(d_wr),
 
-        .i_result (m_res),
-        .i_m_ready(i_ready)
+        .d_result(d_result),
+        .d_m_ready(d_m_ready)
     );
 
     wire fetch_stall;
+
+    wire decoder_pc_change_flag;
+    wire [31:0] decoder_pc_change;
+
+    wire pc_change_flag = RoB_clear | decoder_pc_change_flag;
+    wire [31:0] pc_change = RoB_clear ? RoB_clear_pc_value : decoder_pc_change;
 
     InstructionFetch ifetch (
         .clk_in(clk_in),
         .rst_in(rst_in),
         .rdy_in(rdy_in),
 
-        .pc_change_flag(1'b0),
-        .pc_change(0),
+        .pc_change_flag(pc_change_flag),
+        .pc_change(pc_change),
 
         .stall(fetch_stall),
-        .ready_in(i_ready),
-        .inst_in(m_res),
+        .ready_in(i_m_ready),
+        .inst_in(i_result),
+
+        .RoB_clear(RoB_clear),
+        .RoB_clear_pc_value(RoB_clear_pc_value),
 
         .ready_out(fetch_ready),
         .inst_out(inst),
@@ -100,6 +122,8 @@ module cpu (
     wire issue_ready;
     wire issue_stall;
 
+    wire [31:0] pc_B_fail;
+
     Decoder decoder (
         .clk_in(clk_in),
         .rst_in(rst_in),
@@ -113,6 +137,8 @@ module cpu (
         .fetch_ready(fetch_ready),
         .inst(inst),
         .pc(pc),
+        .pred_res(1'b0),
+        .pc_B_fail(pc_B_fail),
 
         .opcode(opcode),
         .rd(rd),
@@ -125,28 +151,43 @@ module cpu (
         .need_LSB(need_LSB),
 
         .issue_ready(issue_ready),
+
+        .pc_change_flag(decoder_pc_change_flag),
+        .pc_change(decoder_pc_change),
+
         .stall(fetch_stall)
     );
 
     wire [31:0] reg_value_1;
     wire [31:0] reg_value_2;
-    wire [3:0] q_value_1;
-    wire [3:0] q_value_2;
+    wire [`RoB_BITS-1:0] q_value_1;
+    wire [`RoB_BITS-1:0] q_value_2;
     wire q_ready_1;
     wire q_ready_2;
+
+    wire [4:0] set_reg;
+    wire [31:0] set_val;
+
+    wire [4:0] set_reg_q_1;
+    wire [31:0] set_val_q_1;
+
+    wire [4:0] set_reg_q_2;
+    wire [31:0] set_val_q_2;
 
     Register regster (
         .clk_in(clk_in),
         .rst_in(rst_in),
         .rdy_in(rdy_in),
 
-        .set_reg(5'b0),
-        .set_val(32'b0),
+        .set_reg(set_reg),
+        .set_val(set_val),
 
-        .set_reg_q(5'b0),
-        .set_val_q(32'b0),
-        .set_rdy_q(1'b0),
-        
+        .set_reg_q_1(set_reg_q_1),
+        .set_val_q_1(set_val_q_1),
+
+        .set_reg_q_2(set_reg_q_2),
+        .set_val_q_2(set_val_q_2),
+
         .get_reg_1(rs1),
         .get_reg_2(rs2),
 
@@ -160,13 +201,38 @@ module cpu (
         .get_q_ready_2(q_ready_2)
     );
 
+    // wire RS_finish_rdy;
+    wire [`RoB_BITS-1:0] RS_finish_id;
+    // wire [31:0] RS_finish_value;
+
+    wire LSB_finish_rdy;
+    wire [`RoB_BITS-1:0] LSB_finish_id;
+    wire [31:0] LSB_finish_value;
+
+    wire [3:0] RoB_head;
     wire [3:0] RoB_tail;
-    wire [3:0] get_RoBid_1;
-    wire [3:0] get_RoBid_2;
-    wire RoB_busy_1;
-    wire RoB_busy_2;
+
+    wire [`RoB_BITS-1:0] RoB_id_1;
+    wire [`RoB_BITS-1:0] RoB_id_2;
+    wire RoB_rdy_1;
+    wire RoB_rdy_2;
     wire [31:0] RoB_value_1;
     wire [31:0] RoB_value_2;
+
+    wire [3:0] get_RoB_id_1;
+    wire [3:0] get_RoB_id_2;
+    wire RoB_busy_1;
+    wire RoB_busy_2;
+    wire [31:0] get_RoB_value_1;
+    wire [31:0] get_RoB_value_2;
+
+    wire ALU_finish_rdy;
+    wire waiting_ALU;
+    wire [31:0] vj_ALU;
+    wire [31:0] vk_ALU;
+    wire [31:0] imm_ALU;
+    wire [5:0] op_ALU;
+    wire [31:0] ALU_value;
 
     ReorderBuffer RoB (
         .clk_in(clk_in),
@@ -175,21 +241,48 @@ module cpu (
 
         .issue_ready(issue_ready),
         .pc(pc),
-        .pc_B_fail(32'b0),
+        .pc_B_fail(pc_B_fail),
         .pred_res(1'b0),
 
         .opcode(opcode),
         .rd(rd),
 
-        .get_RoBid_1(get_RoBid_1),
-        .get_RoBid_2(get_RoBid_2),
-        .RoB_busy_1(RoB_busy_1),
-        .RoB_busy_2(RoB_busy_2),
+        .RS_finish_rdy(ALU_finish_rdy),
+        .RS_finish_id(RS_finish_id),
+        .RS_finish_value(ALU_value),
+
+        .LSB_finish_rdy(LSB_finish_rdy),
+        .LSB_finish_id(LSB_finish_id),
+        .LSB_finish_value(LSB_finish_value),
+
+        .RoB_id_1(RoB_id_1),
+        .RoB_id_2(RoB_id_2),
+        .RoB_rdy_1(RoB_rdy_1),
+        .RoB_rdy_2(RoB_rdy_2),
         .RoB_value_1(RoB_value_1),
         .RoB_value_2(RoB_value_2),
 
+        .get_RoB_id_1(get_RoB_id_1),
+        .get_RoB_id_2(get_RoB_id_2),
+        .RoB_busy_1(RoB_busy_1),
+        .RoB_busy_2(RoB_busy_2),
+        .get_RoB_value_1(get_RoB_value_1),
+        .get_RoB_value_2(get_RoB_value_2),
+
+        .RoB_head(RoB_head),
         .RoB_tail(RoB_tail),
         .full(RoB_full),
+
+        .set_reg_id(set_reg),
+        .set_reg_value(set_val),
+
+        .set_reg_q_1(set_reg_q_1),
+        .set_val_q_1(set_val_q_1),
+        .set_reg_q_2(set_reg_q_2),
+        .set_val_q_2(set_val_q_2),
+
+        .RoB_clear(RoB_clear),
+        .RoB_clear_pc_value(RoB_clear_pc_value),
 
         .stall(RoB_stall)
     );
@@ -220,13 +313,51 @@ module cpu (
 
         .RoB_tail(RoB_tail),
 
-        .RoB_busy_1(RoB_busy_1),
+        .RoB_id_1(RoB_id_1),
+        .RoB_rdy_1(RoB_rdy_1),
         .RoB_value_1(RoB_value_1),
-
-        .RoB_busy_2(RoB_busy_2),
+        .RoB_id_2(RoB_id_2),
+        .RoB_rdy_2(RoB_rdy_2),
         .RoB_value_2(RoB_value_2),
 
+        .get_RoB_id_1(get_RoB_id_1),
+        .get_RoB_id_2(get_RoB_id_2),
+        .RoB_busy_1(RoB_busy_1),
+        .RoB_busy_2(RoB_busy_2),
+        .get_RoB_value_1(get_RoB_value_1),
+        .get_RoB_value_2(get_RoB_value_2),
+
+        .RoB_clear(RoB_clear),
+
+        .ALU_finish_rdy(ALU_finish_rdy),
+        .waiting_ALU(waiting_ALU),
+        .vj_ALU(vj_ALU),
+        .vk_ALU(vk_ALU),
+        .imm_ALU(imm_ALU),
+        .op_ALU(op_ALU),
+
+        // .RS_finish_rdy(RS_finish_rdy),
+        .RS_finish_id(RS_finish_id),
+        // .RS_finish_value(RS_finish_value),
+
         .full(RS_full)
+    );
+
+    ALU alu (
+        .clk_in(clk_in),
+        .rst_in(rst_in),
+        .rdy_in(rdy_in),
+
+        .vj(vj_ALU),
+        .vk(vk_ALU),
+        .imm(imm_ALU),
+        .op(op_ALU),
+        .waiting(waiting_ALU),
+
+        .RoB_clear(RoB_clear),
+
+        .ALU_finish_rdy(ALU_finish_rdy),
+        .ALU_value(ALU_value)
     );
 
     LoadStoreBuffer LSB (
@@ -246,6 +377,9 @@ module cpu (
         .funct7(funct7),
         .imm(imm),
 
+        .mem_result(d_result),
+        .mem_rdy(d_m_ready),
+
         .q_rs1(q_value_1),
         .q_rs2(q_value_2),
         .q_ready_rs1(q_ready_1),
@@ -253,18 +387,34 @@ module cpu (
         .value_rs1(reg_value_1),
         .value_rs2(reg_value_2),
 
+        .RoB_head(RoB_head),
         .RoB_tail(RoB_tail),
 
-        .RoB_busy_1(RoB_busy_1),
+        .RoB_id_1(RoB_id_1),
+        .RoB_rdy_1(RoB_rdy_1),
         .RoB_value_1(RoB_value_1),
-
-        .RoB_busy_2(RoB_busy_2),
+        .RoB_id_2(RoB_id_2),
+        .RoB_rdy_2(RoB_rdy_2),
         .RoB_value_2(RoB_value_2),
 
-        .d_wating(d_wating),
+        .get_RoB_id_1(get_RoB_id_1),
+        .get_RoB_id_2(get_RoB_id_2),
+        .RoB_busy_1(RoB_busy_1),
+        .RoB_busy_2(RoB_busy_2),
+        .get_RoB_value_1(get_RoB_value_1),
+        .get_RoB_value_2(get_RoB_value_2),
+
+        .RoB_clear(RoB_clear),
+
+        .d_waiting(d_waiting),
+        .d_wr(d_wr),
+        .d_len(d_len),
         .d_addr(d_addr),
         .d_value(d_value),
-        .d_wr(d_wr),
+
+        .LSB_finish_rdy(LSB_finish_rdy),
+        .LSB_finish_id(LSB_finish_id),
+        .LSB_finish_value(LSB_finish_value),
 
         .full(LSB_full)
     );

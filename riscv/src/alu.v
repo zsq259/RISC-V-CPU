@@ -103,7 +103,7 @@ always @(posedge clk_in) begin
                                 end
                             end
                             3'b001: begin // sll
-                                value <= vj << (vk[4:0] & 5'h1f);
+                                value <= vj << (vk[4:0]);
                             end
                             3'b010: begin // slt
                                 value <= ($signed(vj) < $signed(vk)) ? 1 : 0;
