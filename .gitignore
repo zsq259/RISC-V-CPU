@@ -31,4 +31,4 @@
 *.out
 *.app
 
-riscv/testspace/
+riscv/testspace/*.vcd
