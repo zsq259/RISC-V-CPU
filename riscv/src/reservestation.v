@@ -124,10 +124,11 @@ module ReserveStation #(
 
     endgenerate
 
-    wire [31:0] dbg_vj0 = vj[0];
-    wire [31:0] dbg_vj = vj[4'b0001];
-    wire dbg_rdj = rdj[1];
-    wire dbg_rdk = rdk[1];
+    wire [31:0] dbg_vj1 = vj[1];
+    wire [31:0] dbg_vj = vj[rdy_work_id];
+    wire [31:0] dbg_vk = vk[rdy_work_id];
+    wire dbg_rdj = rdj[rdy_work_id];
+    wire dbg_rdk = rdk[rdy_work_id];
     wire dbg_rdjk = rdjk[1];
     wire dbg_busy = busy[1];
     wire dbg_working = working[rdy_work_id];
@@ -175,7 +176,11 @@ module ReserveStation #(
                 end
 
                 if (!(is_U || is_J)) begin
-                    if (q_ready_rs1) begin                        
+                    if (pc == 32'h1010) begin
+                            // $display("ojbk!!!! %d", value_rs1);
+                        end
+                    if (q_ready_rs1) begin         
+                        
                         vj[id]  <= value_rs1;
                         qj[id]  <= 0;
                         rdj[id] <= 1;
@@ -258,22 +263,22 @@ module ReserveStation #(
 
             for (integer i = 0; i < SIZE; i = i + 1) begin
                 if (busy[i] && working[i]) begin                                    
-                    if (busy[i] && working[i] && !rdj[i] && qj[i] == RoB_id_1 && RoB_rdy_1) begin
+                    if (!rdj[i] && qj[i] == RoB_id_1 && RoB_rdy_1) begin
                         vj[i]  <= RoB_value_1;
                         qj[i]  <= 0;
                         rdj[i] <= 1;
                     end
-                    if (busy[i] && working[i] && !rdj[i] && qj[i] == RoB_id_2 && RoB_rdy_2) begin
+                    if (!rdj[i] && qj[i] == RoB_id_2 && RoB_rdy_2) begin
                         vj[i]  <= RoB_value_2;
                         qj[i]  <= 0;
                         rdj[i] <= 1;
                     end
-                    if (busy[i] && working[i] && !rdk[i] && qk[i] == RoB_id_1 && RoB_rdy_1) begin
+                    if (!rdk[i] && qk[i] == RoB_id_1 && RoB_rdy_1) begin
                         vk[i]  <= RoB_value_1;
                         qk[i]  <= 0;
                         rdk[i] <= 1;
                     end
-                    if (busy[i] && working[i] && !rdk[i] && qk[i] == RoB_id_2 && RoB_rdy_2) begin
+                    if (!rdk[i] && qk[i] == RoB_id_2 && RoB_rdy_2) begin
                         vk[i]  <= RoB_value_2;
                         qk[i]  <= 0;
                         rdk[i] <= 1;

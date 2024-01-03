@@ -9,6 +9,7 @@ module ReorderBuffer #(
     input wire rdy_in,  // ready signal, pause cpu when low
 
     input wire issue_ready,
+    input wire [31:0] inst,
     input wire [31:0] pc,
     input wire [31:0] pc_B_fail,  // what pc should be if branch fails
     input wire pred_res,  // prediction result
@@ -63,6 +64,10 @@ module ReorderBuffer #(
     reg [31:0] dest[Size-1:0];
     reg [1:0] op[Size-1:0];  // 0: load, 1: store, 2: branch, 3: jalr
     reg [31:0] pc_jalr[Size-1:0];
+
+    reg [31:0] insts[Size-1:0];
+    reg [31:0] pcs[Size-1:0];
+
     wire is_J = opcode == 7'b1101111;
     wire is_B = opcode == 7'b1100011;
     wire is_S = opcode == 7'b0100011;
@@ -101,6 +106,8 @@ module ReorderBuffer #(
     wire [1:0] dbg_op = op[head];
     wire [31:0] dbg_value = value[head];
 
+    reg[31:0] counter = 0;
+
     always @(posedge clk_in) begin
         if (rst_in || RoB_clear) begin
             head  <= 0;
@@ -117,6 +124,10 @@ module ReorderBuffer #(
         end
         else if (rdy_in) begin
             if (issue_ready) begin
+
+                insts[tail] <= inst;
+                pcs[tail] <= pc;
+
                 tail <= tail + 1;                
                 if (is_J) begin
                     value[tail] <= pc + 4;
@@ -177,8 +188,10 @@ module ReorderBuffer #(
 
 
             if (!busy[head] && !free[head]) begin
+                counter <= counter + 1;
                 free[head] <= 1;
                 head <= head + 1;
+                // $display("inst: %h, %d %h", insts[head], pcs[head], pcs[head]);
                 case (op[head])
                     2'd2: begin
 

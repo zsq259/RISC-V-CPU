@@ -71,7 +71,8 @@ module MemoryController (
 
             case (state)
                 3'b000: begin
-                    if (need_work) begin  // start working                        
+                    if (need_work) begin  // start working       
+                        // if (wr && addr <= 4944 && addr >= 4936) $display("ojkbkkkkkkkkkk %d %d", addr, value);
                         work_wr <= wr;
                         work_len <= len;
                         work_addr <= addr;

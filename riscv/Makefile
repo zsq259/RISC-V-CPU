@@ -13,6 +13,11 @@ sys = $(prefix)/sys
 
 sources = $(shell find $(src) -name "*.v")
 
+fpga_testcases=$(shell find testcase/fpga -name "*.c")
+fpga_datafiles=$(fpga_testcases:.c=.data)
+
+all: $(fpga_datafiles)
+
 _no_testcase_name_check:
 	@$(if $(strip $(name)),, echo 'Missing Testcase Name')
 	@$(if $(strip $(name)),, exit 1)
@@ -28,6 +33,22 @@ build_sim_test: _no_testcase_name_check
 	@$(riscv_bin)/riscv32-unknown-elf-ld -T $(sys)/memory.ld $(sys)/rom.o $(testspace)/test.o -L $(riscv_toolchain)/riscv32-unknown-elf/lib/ -L $(riscv_toolchain)/lib/gcc/riscv32-unknown-elf/13.2.0/ -lc -lgcc -lm -lnosys -o $(testspace)/test.om
 	@$(riscv_bin)/riscv32-unknown-elf-objcopy -O verilog $(testspace)/test.om $(testspace)/test.data
 	@$(riscv_bin)/riscv32-unknown-elf-objdump -D $(testspace)/test.om > $(testspace)/test.dump
+
+CC=$(riscv_bin)/riscv32-unknown-elf-gcc
+LD=$(riscv_bin)/riscv32-unknown-elf-ld
+OBJCOPY=$(riscv_bin)/riscv32-unknown-elf-objcopy
+OBJDUMP=$(riscv_bin)/riscv32-unknown-elf-objdump
+
+CFLAGS=-I $(sys) -O2 -march=rv32i -mabi=ilp32 -Wall
+
+%.dump: %.om
+	$(OBJDUMP) -D $< > $@
+
+%.data: %.om
+	$(OBJCOPY) -O binary $< $@
+
+%.om: $(sys)/rom.o %.o
+	$(LD) -T $(sys)/memory.ld $^ -L $(riscv_toolchain)/riscv32-unknown-elf/lib/ -L $(riscv_toolchain)/lib/gcc/riscv32-unknown-elf/13.2.0/ -lc -lgcc -lm -lnosys -o $@
 
 run_sim:
 	@cd $(testspace) && ./test

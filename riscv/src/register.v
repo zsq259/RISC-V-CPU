@@ -3,6 +3,8 @@ module Register (
     input wire rst_in,  // reset signa
     input wire rdy_in,  // ready signal, pause cpu when low
 
+    input wire RoB_clear,
+
     input wire [ 4:0] set_reg,  // register to be set
     input wire [31:0] set_val,  // value to be set    
 
@@ -29,6 +31,9 @@ module Register (
     reg [31:0] q[31:0];
     reg ready[31:0];
 
+    wire dbg_q10 = q[10];
+    wire dbg_rdy_q10 = ready[10];
+
     assign get_val_1 = regfile[get_reg_1];
     assign get_val_2 = regfile[get_reg_2];
     assign get_q_value_1 = q[get_reg_1];
@@ -38,9 +43,11 @@ module Register (
 
 
     always @(posedge clk_in) begin
-        if (rst_in) begin
+        if (rst_in || RoB_clear) begin
             for (integer i = 0; i < 32; i = i + 1) begin
-                regfile[i] <= 0;
+                if (rst_in) begin
+                    regfile[i] <= 0;
+                end 
                 q[i] <= 0;
                 ready[i] <= 1'b1;
             end

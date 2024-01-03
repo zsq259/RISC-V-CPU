@@ -179,6 +179,8 @@ module cpu (
         .rst_in(rst_in),
         .rdy_in(rdy_in),
 
+        .RoB_clear(RoB_clear),
+
         .set_reg(set_reg),
         .set_val(set_val),
 
@@ -240,6 +242,7 @@ module cpu (
         .rdy_in(rdy_in),
 
         .issue_ready(issue_ready),
+        .inst(inst),
         .pc(pc),
         .pc_B_fail(pc_B_fail),
         .pred_res(1'b0),
