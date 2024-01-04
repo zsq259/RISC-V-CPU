@@ -110,10 +110,7 @@ module LoadStoreBuffer #(
     assign LSB_finish_value = mem_result;
 
     assign get_RoB_id_1 = q_rs1;
-    assign get_RoB_id_2 = q_rs2;
-
-    wire[`RoB_BITS-1:0] dbg_id = dest[head];
-    wire[31:0] dbg_vj = vj[head];
+    assign get_RoB_id_2 = q_rs2;    
 
     always @(posedge clk_in) begin
         if (rst_in || RoB_clear) begin

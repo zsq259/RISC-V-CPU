@@ -65,8 +65,8 @@ module ReorderBuffer #(
     reg [1:0] op[Size-1:0];  // 0: load, 1: store, 2: branch, 3: jalr
     reg [31:0] pc_jalr[Size-1:0];
 
-    reg [31:0] insts[Size-1:0];
-    reg [31:0] pcs[Size-1:0];
+    // reg [31:0] insts[Size-1:0];
+    // reg [31:0] pcs[Size-1:0];
 
     wire is_J = opcode == 7'b1101111;
     wire is_B = opcode == 7'b1100011;
@@ -99,14 +99,9 @@ module ReorderBuffer #(
     assign set_val_q_2 = head;
 
     assign RoB_clear = !free[head] && !busy[head] && (op[head] == 2'd3 || (op[head] == 2'd2 && (value[head] & 32'd1)));
-    assign RoB_clear_pc_value = op[head] == 2'd2? dest[head] : pc_jalr[head];
+    assign RoB_clear_pc_value = op[head] == 2'd2? dest[head] : pc_jalr[head];    
 
-    wire dbg_busy = busy[head];
-    wire dbg_free = free[head];
-    wire [1:0] dbg_op = op[head];
-    wire [31:0] dbg_value = value[head];
-
-    reg[31:0] counter = 0;
+    // reg[31:0] counter = 0;
 
     always @(posedge clk_in) begin
         if (rst_in || RoB_clear) begin
@@ -125,8 +120,8 @@ module ReorderBuffer #(
         else if (rdy_in) begin
             if (issue_ready) begin
 
-                insts[tail] <= inst;
-                pcs[tail] <= pc;
+                // insts[tail] <= inst;
+                // pcs[tail] <= pc;
 
                 tail <= tail + 1;                
                 if (is_J) begin
@@ -173,8 +168,7 @@ module ReorderBuffer #(
             if (RS_finish_rdy) begin
                 busy[RS_finish_id] <= 0;
                 if (op[RS_finish_id] != 2'd2) begin
-                    if (!value[RS_finish_id]) begin
-                        // $display("RoB: RS_finish_value is 0: %h", RS_finish_value);
+                    if (!value[RS_finish_id]) begin                        
                         value[RS_finish_id] <= RS_finish_value;
                     end
                     else if (op[RS_finish_id] == 2'd3) begin
@@ -188,7 +182,7 @@ module ReorderBuffer #(
 
 
             if (!busy[head] && !free[head]) begin
-                counter <= counter + 1;
+                // counter <= counter + 1;
                 free[head] <= 1;
                 head <= head + 1;
                 // $display("inst: %h, %d %h", insts[head], pcs[head], pcs[head]);

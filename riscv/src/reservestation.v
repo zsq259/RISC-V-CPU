@@ -124,17 +124,6 @@ module ReserveStation #(
 
     endgenerate
 
-    wire [31:0] dbg_vj1 = vj[1];
-    wire [31:0] dbg_vj = vj[rdy_work_id];
-    wire [31:0] dbg_vk = vk[rdy_work_id];
-    wire dbg_rdj = rdj[rdy_work_id];
-    wire dbg_rdk = rdk[rdy_work_id];
-    wire dbg_rdjk = rdjk[1];
-    wire dbg_busy = busy[1];
-    wire dbg_working = working[rdy_work_id];
-    wire dbg_waiting = waiting[rdy_work_id];
-    wire dbg_finished = finish_work[rdy_work_id];    
-
     wire [BITS-1:0] id = free[1];
     wire ready = need_RS && !busy[id];
     assign full = busy[id];
@@ -175,12 +164,8 @@ module ReserveStation #(
                     else if (is_R) op[id] <= {funct7, funct3, 2'd3};
                 end
 
-                if (!(is_U || is_J)) begin
-                    if (pc == 32'h1010) begin
-                            // $display("ojbk!!!! %d", value_rs1);
-                        end
-                    if (q_ready_rs1) begin         
-                        
+                if (!(is_U || is_J)) begin                
+                    if (q_ready_rs1) begin                                 
                         vj[id]  <= value_rs1;
                         qj[id]  <= 0;
                         rdj[id] <= 1;

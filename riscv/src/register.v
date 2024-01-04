@@ -29,10 +29,7 @@ module Register (
 
     reg [31:0] regfile[31:0];
     reg [31:0] q[31:0];
-    reg ready[31:0];
-
-    wire dbg_q10 = q[10];
-    wire dbg_rdy_q10 = ready[10];
+    reg ready[31:0];    
 
     assign get_val_1 = regfile[get_reg_1];
     assign get_val_2 = regfile[get_reg_2];
