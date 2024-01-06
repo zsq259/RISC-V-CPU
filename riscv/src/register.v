@@ -38,10 +38,11 @@ module Register (
     assign get_q_ready_1 = ready[get_reg_1];    
     assign get_q_ready_2 = ready[get_reg_2];
 
+    integer i;
 
     always @(posedge clk_in) begin
         if (rst_in || RoB_clear) begin
-            for (integer i = 0; i < 32; i = i + 1) begin
+            for (i = 0; i < 32; i = i + 1) begin
                 if (rst_in) begin
                     regfile[i] <= 0;
                 end 

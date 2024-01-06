@@ -99,16 +99,18 @@ module ReorderBuffer #(
     assign set_val_q_2 = head;
 
     assign RoB_clear = !free[head] && !busy[head] && (op[head] == 2'd3 || (op[head] == 2'd2 && (value[head] & 32'd1)));
-    assign RoB_clear_pc_value = op[head] == 2'd2? dest[head] : pc_jalr[head];    
+    assign RoB_clear_pc_value = (op[head] == 2'd2)? (dest[head]) : pc_jalr[head];    
 
     // reg[31:0] counter = 0;
+
+    integer i;
 
     always @(posedge clk_in) begin
         if (rst_in || RoB_clear) begin
             head  <= 0;
             tail  <= 0;
             stall <= 0;
-            for (integer i = 0; i < Size; i = i + 1) begin
+            for (i = 0; i < Size; i = i + 1) begin
                 busy[i]  <= 0;
                 free[i]  <= 1;
                 value[i] <= 0;

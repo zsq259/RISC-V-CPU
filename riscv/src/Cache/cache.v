@@ -34,15 +34,7 @@ module Cache (
     wire i_hit;  // instruction hit signal
     wire [31:0] i_res;  //result from instruction cache
     wire i_wr;  // write/read signal (1 for write) for instruction cache    
-    assign i_result = i_hit ? i_res : m_res;
-
-    assign i_wr = state && m_ready && (i_addr == current_addr) && !d_waiting;
-
     
-    assign i_m_ready = (i_addr == current_addr) && (i_hit ? i_hit : (m_ready && !m_waiting)) && !d_waiting;
-
-    assign d_result = m_res;
-    assign d_m_ready = (d_addr == current_addr) && m_ready && d_waiting;
 
     reg m_wr;  // write/read signal (1 for write)
     wire m_waiting;  // waiting for work
@@ -55,7 +47,15 @@ module Cache (
     wire m_ready;  // ready to work
     wire [31:0] m_res;  // result of read operation    
 
+    assign i_result = i_hit ? i_res : m_res;
+
+    assign i_wr = state && m_ready && (i_addr == current_addr) && !d_waiting;
+
     
+    assign i_m_ready = (i_addr == current_addr) && (i_hit ? i_hit : (m_ready && !m_waiting)) && !d_waiting;
+
+    assign d_result = m_res;
+    assign d_m_ready = (d_addr == current_addr) && m_ready && d_waiting;
 
 
 

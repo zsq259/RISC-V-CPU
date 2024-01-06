@@ -26,10 +26,12 @@ module InstructionCache #(
 
     assign hit = valid[index] && tags[index] == tag;
     assign result = block[index];
-
+    
+    integer i;
+    
     always @(posedge clk_in) begin
         if (rst_in) begin
-            for (integer i = 0; i < Size; i = i + 1) begin
+            for (i = 0; i < Size; i = i + 1) begin
                 valid[i] <= 0;
                 tags[i]  <= 0;
                 block[i] <= 0;

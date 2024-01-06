@@ -102,24 +102,24 @@ module ReserveStation #(
     assign RS_finish_id = dest[rdy_work_id];
 
     generate
-        genvar i;
-        for (i = 0; i < (1 << BITS); i = i + 1) begin : gen0
-            assign rdjk[i] = rdj[i] && rdk[i] && busy[i];
-            assign finish_work[i] = !working[i] && !waiting[i] && busy[i];
+        genvar ii;        
+        for (ii = 0; ii < (1 << BITS); ii = ii + 1) begin : gen0
+            assign rdjk[ii] = rdj[ii] && rdk[ii] && busy[ii];
+            assign finish_work[ii] = !working[ii] && !waiting[ii] && busy[ii];
         end
-        for (i = 0; i < (1 << (BITS - 1)); i = i + 1) begin : gen1
-            assign free[i] = !busy[free[i<<1]] ? free[i<<1] : free[(i<<1)|1];
+        for (ii = 0; ii < (1 << (BITS - 1)); ii = ii + 1) begin : gen1
+            assign free[ii] = !busy[free[ii<<1]] ? free[ii<<1] : free[(ii<<1)|1];
 
-            assign rdy_work[i] = rdjk[rdy_work[i<<1]] ? rdy_work[i<<1] : rdy_work[(i<<1)|1];
+            assign rdy_work[ii] = rdjk[rdy_work[ii<<1]] ? rdy_work[ii<<1] : rdy_work[(ii<<1)|1];
 
-            assign finished[i] = finish_work[finished[i<<1]] ? finished[i<<1] : finished[(i<<1)|1];
+            assign finished[ii] = finish_work[finished[ii<<1]] ? finished[ii<<1] : finished[(ii<<1)|1];
         end
-        for (i = (1 << (BITS - 1)); i < (1 << BITS); i = i + 1) begin : gen2
-            assign free[i] = !busy[(i<<1)-SIZE] ? (i << 1) - SIZE : ((i << 1) | 1) - SIZE;
+        for (ii = (1 << (BITS - 1)); ii < (1 << BITS); ii = ii + 1) begin : gen2
+            assign free[ii] = !busy[(ii<<1)-SIZE] ? (ii << 1) - SIZE : ((ii << 1) | 1) - SIZE;
 
-            assign rdy_work[i] = rdjk[(i<<1)-SIZE] ? (i << 1) - SIZE : ((i << 1) | 1) - SIZE;
+            assign rdy_work[ii] = rdjk[(ii<<1)-SIZE] ? (ii << 1) - SIZE : ((ii << 1) | 1) - SIZE;
 
-            assign finished[i] = finish_work[(i<<1)-SIZE] ? (i << 1) - SIZE : ((i << 1) | 1) - SIZE;
+            assign finished[ii] = finish_work[(ii<<1)-SIZE] ? (ii << 1) - SIZE : ((ii << 1) | 1) - SIZE;
         end
 
     endgenerate
@@ -131,9 +131,11 @@ module ReserveStation #(
     wire [BITS-1:0] rdy_work_id = rdy_work[1];
     wire [BITS-1:0] finish_id = finished[1];
 
+    integer i;
+
     always @(posedge clk_in) begin
         if (rst_in || RoB_clear) begin
-            for (integer i = 0; i < SIZE; i = i + 1) begin
+            for (i = 0; i < SIZE; i = i + 1) begin
                 busy[i]    <= 0;
                 working[i] <= 0;
                 waiting[i] <= 0;
@@ -246,7 +248,7 @@ module ReserveStation #(
                 end
             end
 
-            for (integer i = 0; i < SIZE; i = i + 1) begin
+            for (i = 0; i < SIZE; i = i + 1) begin
                 if (busy[i] && working[i]) begin                                    
                     if (!rdj[i] && qj[i] == RoB_id_1 && RoB_rdy_1) begin
                         vj[i]  <= RoB_value_1;

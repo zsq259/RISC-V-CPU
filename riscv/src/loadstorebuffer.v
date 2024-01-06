@@ -112,11 +112,13 @@ module LoadStoreBuffer #(
     assign get_RoB_id_1 = q_rs1;
     assign get_RoB_id_2 = q_rs2;    
 
+    integer i;
+
     always @(posedge clk_in) begin
         if (rst_in || RoB_clear) begin
             head <= 0;
             tail <= 0;
-            for (integer i = 0; i < SIZE; i = i + 1) begin
+            for (i = 0; i < SIZE; i = i + 1) begin
                 busy[i] <= 0;
                 vj[i] <= 0;
                 vk[i] <= 0;
@@ -217,7 +219,7 @@ module LoadStoreBuffer #(
                 head <= head + 1;
             end
 
-            for (integer i = 0; i < SIZE; i = i + 1) begin
+            for (i = 0; i < SIZE; i = i + 1) begin
                 if (busy[i]) begin                                    
                     if (!rdj[i] && qj[i] == RoB_id_1 && RoB_rdy_1) begin
                         vj[i]  <= RoB_value_1;
