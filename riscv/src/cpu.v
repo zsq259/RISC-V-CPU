@@ -30,8 +30,7 @@ module cpu (
     // - 0x30004 write: indicates program stop (will output '\0' through uart tx)    
 
     wire reddy_in = rdy_in & !io_buffer_full;
-
-    reg waiting;
+    
     wire i_m_ready;
 
     wire fetch_ready;
@@ -129,7 +128,7 @@ module cpu (
     Decoder decoder (
         .clk_in(clk_in),
         .rst_in(rst_in),
-        .rdy_in(reddy_in),
+        .rdy_in(rdy_in),
 
         .RS_full  (RS_full),
         .LSB_full (LSB_full),
@@ -179,7 +178,7 @@ module cpu (
     Register regster (
         .clk_in(clk_in),
         .rst_in(rst_in),
-        .rdy_in(reddy_in),
+        .rdy_in(rdy_in),
 
         .RoB_clear(RoB_clear),
 
@@ -241,7 +240,7 @@ module cpu (
     ReorderBuffer RoB (
         .clk_in(clk_in),
         .rst_in(rst_in),
-        .rdy_in(reddy_in),
+        .rdy_in(rdy_in),
 
         .issue_ready(issue_ready),
         .inst(inst),
@@ -295,7 +294,7 @@ module cpu (
     ReserveStation RS (
         .clk_in(clk_in),
         .rst_in(rst_in),
-        .rdy_in(reddy_in),
+        .rdy_in(rdy_in),
 
         .pc(pc),
 
@@ -351,7 +350,7 @@ module cpu (
     ALU alu (
         .clk_in(clk_in),
         .rst_in(rst_in),
-        .rdy_in(reddy_in),
+        .rdy_in(rdy_in),
 
         .vj(vj_ALU),
         .vk(vk_ALU),
@@ -423,26 +422,8 @@ module cpu (
 
         .full(LSB_full)
     );
-
-    reg [31:0] counter;
-    always @(posedge clk_in) begin
-        if (rst_in) begin
-            counter <= 0;
-            waiting <= 0;
-
-        end
-        else if (!reddy_in) begin
-
-        end
-        else begin
-            // $display("counter: %d", counter);
-            // counter <= counter + 1;
-            // if (ready) begin
-            //     $display("inst: %h, pc: %d", inst, pc);
-
-            // end
-
-        end
+    
+    always @(posedge clk_in) begin        
 
     end
 
