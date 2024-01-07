@@ -32,3 +32,5 @@
 *.app
 
 riscv/testspace/*.vcd
+riscv/testcase/*/*.data
+riscv/testcase/*/*.dump

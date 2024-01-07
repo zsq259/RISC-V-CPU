@@ -29,7 +29,7 @@ module cpu (
     // - 0x30004 read: read clocks passed since cpu starts (in dword, 4 bytes)
     // - 0x30004 write: indicates program stop (will output '\0' through uart tx)    
 
-    wire reddy_in = rdy_in & !io_buffer_full;
+    wire reddy_in = rdy_in && !io_buffer_full;
     
     wire i_m_ready;
 
